@@ -7,7 +7,7 @@ from src.utils.logger import logger
 from src.gui.themes import DARK_THEME
 
 
-APP_NAME = "Xebec PDF Fixer"
+APP_NAME = "Xebec Pdf"
 APP_VERSION = "0.0.1vs"
 APP_AUTHOR = "BGNC"
 APP_ORG = "Corporación Xebec"

@@ -1,6 +1,6 @@
 from pathlib import Path
 from typing import Tuple, Optional
-from PyPDF2 import PdfReader, PdfWriter
+from pypdf import PdfReader, PdfWriter
 
 
 class PDFRepairer:

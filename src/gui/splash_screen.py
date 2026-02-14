@@ -9,23 +9,20 @@ class SplashScreen:
     def __init__(self):
         self.root = tk.Tk()
         self.root.overrideredirect(True)
-        self.root.configure(bg="#282A31")
         
         self._setup_window()
         self._build_ui()
         self._center_window()
         
-        self.progress = 0
-        self.status_text = "Iniciando..."
-        
     def _setup_window(self):
-        width = 500
-        height = 300
+        width = 600
+        height = 400
         screen_w = self.root.winfo_screenwidth()
         screen_h = self.root.winfo_screenheight()
         x = (screen_w // 2) - (width // 2)
         y = (screen_h // 2) - (height // 2)
         self.root.geometry(f"{width}x{height}+{x}+{y}")
+        self.root.configure(bg="#1E1E2E")
         
     def _center_window(self):
         self.root.update_idletasks()
@@ -36,16 +33,64 @@ class SplashScreen:
         self.root.geometry(f"{width}x{height}+{x}+{y}")
         
     def _build_ui(self):
-        self.root.configure(bg="#282A31")
+        self.root.configure(bg="#1E1E2E")
         
-        self.canvas = tk.Canvas(
+        canvas = tk.Canvas(
             self.root,
-            width=500,
-            height=300,
-            bg="#282A31",
+            width=600,
+            height=400,
+            bg="#1E1E2E",
             highlightthickness=0
         )
-        self.canvas.pack(fill="both", expand=True)
+        canvas.pack(fill="both", expand=True)
+        
+        splash_path = self._get_splash_path()
+        
+        if splash_path and splash_path.exists():
+            try:
+                from PIL import Image, ImageTk
+                img = Image.open(splash_path)
+                img = img.resize((600, 400), Image.Resampling.LANCZOS)
+                self.splash_image = ImageTk.PhotoImage(img)
+                canvas.create_image(300, 200, image=self.splash_image, anchor="center")
+                self._create_progress_on_image()
+            except Exception as e:
+                print(f"Error loading splash: {e}")
+                self._create_default_ui(canvas)
+        else:
+            self._create_default_ui(canvas)
+            
+    def _create_progress_on_image(self):
+        self.progress = 0
+        
+        style = ttk.Style()
+        style.theme_use("clam")
+        style.configure(
+            "Splash.Horizontal.TProgressbar",
+            thickness=4,
+            background="#7C3AED",
+            troughcolor="#313244"
+        )
+        
+        self.progress_bar = ttk.Progressbar(
+            self.root,
+            mode="determinate",
+            length=400,
+            style="Splash.Horizontal.TProgressbar"
+        )
+        self.progress_bar.place(x=100, y=330)
+        
+        self.status_label = tk.Label(
+            self.root,
+            text="Cargando...",
+            font=("Segoe UI", 10),
+            bg="#1E1E2E",
+            fg="#6C7086"
+        )
+        self.status_label.place(x=300, y=365, anchor="center")
+        
+    def _create_default_ui(self, canvas):
+        canvas.configure(bg="#1E1E2E")
         
         logo_path = self._get_logo_path()
         
@@ -53,65 +98,69 @@ class SplashScreen:
             try:
                 from PIL import Image, ImageTk
                 img = Image.open(logo_path)
-                img = img.resize((120, 120), Image.Resampling.LANCZOS)
+                img = img.resize((100, 100), Image.Resampling.LANCZOS)
                 self.logo_image = ImageTk.PhotoImage(img)
-                self.canvas.create_image(250, 100, image=self.logo_image, anchor="center")
+                canvas.create_image(300, 150, image=self.logo_image, anchor="center")
             except Exception:
-                self._draw_default_logo()
+                canvas.create_oval(250, 100, 350, 200, fill="#7C3AED", outline="#7C3AED")
+                canvas.create_text(300, 150, text="X", font=("Segoe UI", 36, "bold"), fill="white", anchor="center")
         else:
-            self._draw_default_logo()
+            canvas.create_oval(250, 100, 350, 200, fill="#7C3AED", outline="#7C3AED")
+            canvas.create_text(300, 150, text="X", font=("Segoe UI", 36, "bold"), fill="white", anchor="center")
             
-        self.canvas.create_text(
-            250, 180,
-            text="Xebec PDF Fixer",
-            font=("Segoe UI", 24, "bold"),
-            fill="#B2C2CD",
+        canvas.create_text(
+            300, 240,
+            text="Xebec Pdf",
+            font=("Segoe UI", 28, "bold"),
+            fill="#CDD6F4",
             anchor="center"
         )
         
-        self.canvas.create_text(
-            250, 210,
-            text="Corporación Xebec",
-            font=("Segoe UI", 12),
-            fill="#8E9BAB",
+        canvas.create_text(
+            300, 275,
+            text="Cargando...",
+            font=("Segoe UI", 11),
+            fill="#6C7086",
             anchor="center"
         )
+        
+        self.progress = 0
         
         style = ttk.Style()
         style.theme_use("clam")
         style.configure(
             "Splash.Horizontal.TProgressbar",
-            thickness=6,
-            background="#528BFF",
-            troughcolor="#16181F"
+            thickness=4,
+            background="#7C3AED",
+            troughcolor="#313244"
         )
         
         self.progress_bar = ttk.Progressbar(
             self.root,
             mode="determinate",
-            length=300,
+            length=400,
             style="Splash.Horizontal.TProgressbar"
         )
-        self.progress_bar.place(x=100, y=240)
+        self.progress_bar.place(x=100, y=330)
         
         self.status_label = tk.Label(
             self.root,
-            text="Iniciando...",
+            text="Cargando...",
             font=("Segoe UI", 10),
-            bg="#282A31",
-            fg="#8E9BAB"
+            bg="#1E1E2E",
+            fg="#6C7086"
         )
-        self.status_label.place(x=250, y=275, anchor="center")
+        self.status_label.place(x=300, y=365, anchor="center")
         
-    def _draw_default_logo(self):
-        self.canvas.create_oval(200, 50, 300, 150, fill="#528BFF", outline="#528BFF")
-        self.canvas.create_text(
-            250, 100,
-            text="X",
-            font=("Segoe UI", 40, "bold"),
-            fill="#282A31",
-            anchor="center"
-        )
+    def _get_splash_path(self):
+        possible_paths = [
+            Path.cwd() / "assets" / "splash" / "estart-cargando.png",
+            Path(__file__).parent.parent.parent / "assets" / "splash" / "estart-cargando.png",
+        ]
+        for path in possible_paths:
+            if path.exists():
+                return path
+        return None
         
     def _get_logo_path(self):
         possible_paths = [
@@ -133,16 +182,16 @@ class SplashScreen:
         
     def simulate_loading(self):
         steps = [
-            (20, "Cargando configuración..."),
-            (40, "Inicializando componentes..."),
-            (60, "Cargando interfaz gráfica..."),
-            (80, "Preparando herramientas PDF..."),
+            (20, "Iniciando..."),
+            (40, "Cargando configuración..."),
+            (60, "Preparando interfaz..."),
+            (80, "Cargando herramientas..."),
             (100, "¡Listo!")
         ]
         
         for progress, status in steps:
             self.update_progress(progress, status)
-            time.sleep(0.5)
+            time.sleep(0.6)
             
     def close(self):
         self.root.destroy()
