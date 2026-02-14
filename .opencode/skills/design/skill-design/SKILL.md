@@ -29,33 +29,64 @@ metadata:
 
 ---
 
-## 2. Paleta de Colores
+## 2. Temas - One Dark Pro & Atom One Light
 
-### Tema Oscuro (Principal)
+### Tema Oscuro - One Dark Pro (Principal)
 | Nombre | Hex | Uso |
 |--------|-----|-----|
-| Background Primary | `#1e1e1e` | Fondo principal |
-| Background Secondary | `#2d2d2d` | Fondo de tarjetas |
-| Background Tertiary | `#3c3c3c` | Botones, inputs |
-| Foreground Primary | `#ffffff` | Texto principal |
-| Foreground Secondary | `#b0b0b0` | Texto secundario |
-| Foreground Disabled | `#666666` | Texto deshabilitado |
-| Accent Primary | `#0078d4` | Botones principales |
-| Accent Hover | `#1084d8` | Hover de botones |
-| Border | `#404040` | Bordes |
-| Error | `#f44336` | Errores |
-| Success | `#4caf50` | Éxito |
-| Warning | `#ff9800` | Advertencias |
+| Background | `#282A31` | Fondo principal |
+| Background Alt | `#16181F` | Fondo secundario/sidebar |
+| Background Current Line | `#2D333B` | Línea actual |
+| Foreground | `#B2C2CD` | Texto principal |
+| Foreground Dim | `#8E9BAB` | Texto secundario |
+| Comment | `#5C6370` | Comentarios |
+| Accent | `#528BFF` | Links, acentos |
+| Red | `#E06C75` | Errores, eliminar |
+| Green | `#98C379` | Éxito |
+| Yellow | `#E5C07B` | Advertencias |
+| Blue | `#61AFEF` | Información |
+| Purple | `#C678DD` | Destacados |
+| Cyan | `#56B6C2` | Estados |
 
-### Tema Claro
+### Tema Claro - Atom One Light
 | Nombre | Hex | Uso |
 |--------|-----|-----|
-| Background Primary | `#ffffff` | Fondo principal |
-| Background Secondary | `#f5f5f5` | Fondo de tarjetas |
-| Background Tertiary | `#e0e0e0` | Botones, inputs |
-| Foreground Primary | `#000000` | Texto principal |
-| Foreground Secondary | `#666666` | Texto secundario |
-| Accent Primary | `#0078d4` | Botones principales |
+| Background | `#FAFAFA` | Fondo principal |
+| Background Alt | `#F5F5F5` | Fondo secundario |
+| Background Current Line | `#EFEFEF` | Línea actual |
+| Foreground | `#383A42` | Texto principal |
+| Foreground Dim | `#9DA5B4` | Texto secundario |
+| Comment | `#A0A1A7` | Comentarios |
+| Accent | `#526FFF` | Links, acentos |
+| Red | `#E45649` | Errores, eliminar |
+| Green | `#50A14F` | Éxito |
+| Yellow | `#986801` | Advertencias |
+| Blue | `#526FFF` | Información |
+| Purple | `#A626A4` | Destacados |
+| Cyan | `#0897B3` | Estados |
+
+### Variables CSS del Tema (para referencia)
+```css
+/* One Dark Pro */
+--bg-primary: #282A31;
+--bg-secondary: #16181F;
+--fg-primary: #B2C2CD;
+--fg-secondary: #8E9BAB;
+--accent: #528BFF;
+--error: #E06C75;
+--success: #98C379;
+--warning: #E5C07B;
+
+/* Atom One Light */
+--bg-primary: #FAFAFA;
+--bg-secondary: #F5F5F5;
+--fg-primary: #383A42;
+--fg-secondary: #9DA5B4;
+--accent: #526FFF;
+--error: #E45649;
+--success: #50A14F;
+--warning: #986801;
+```
 
 ---
 
@@ -207,21 +238,77 @@ metadata:
 
 ---
 
-## 10. Assets Requeridos
+## 10. Assets de Diseño
 
-### Imágenes
-- [ ] xebec_icon.png (icono aplicación)
-- [ ] splash_logo.png (splash screen)
-- [ ] screenshot_main.png (demo)
+### Imágenes del Proyecto
+```
+assets/
+├── icons/
+│   ├── icono.png          # Icono de aplicación (197KB)
+│   └── logo.png           # Logo corporativo (1.2MB)
+├── splash/
+│   └── estart-cargando.png    # Splash screen
+└── design/
+    ├── estart-cargando.png           # Diseño splash
+    ├── 2 panel despues del start.png # Panel principal
+    ├── arbol de archivos.png         # Navegador archivos
+    ├── panel de busqueda.png         # Panel búsqueda
+    ├── panel de lectura.png          # Visor PDF
+    ├── panel de edicion lateral.png  # Panel edición
+    ├── panel de opciones en formato cinta.png  # Ribbon toolbar
+    ├── paenel de configuracion.png  # Configuración
+    └── panel de ayuda de teclas.png  # Atajos teclado
+```
 
-### Iconos
-- Iconos SVG preferidos
-- Tamaño: 24x24 (UI), 48x48 (menú)
-- Formato: PNG con transparencia
+### Assets Implementados
+| Asset | Estado | Ubicación |
+|-------|--------|-----------|
+| Logo | ✅ Listo | `assets/icons/logo.png` |
+| Icono app | ✅ Listo | `assets/icons/icono.png` |
+| Splash | ✅ Listo | `assets/splash/estart-cargando.png` |
 
 ---
 
-## 11. Guías de Implementación
+## 11. Estructura de Paneles (UI Modular)
+
+### Layout Principal
+```
+┌─────────────────────────────────────────────────────────────┐
+│  [Logo] Xebec PDF Fixer        [─] [□] [×]                │  ← Title Bar
+├─────────────────────────────────────────────────────────────┤
+│  [Archivo] [Editar] [Ver] [Herramientas] [Ayuda]          │  ← Ribbon Menu
+├──────────┬─────────────────────────────────┬──────────────┤
+│          │                                 │              │
+│  Sidebar │       Panel Principal           │  Panel       │
+│  (Árbol) │       (Visor/Lectura)          │  Lateral     │
+│          │                                 │  (Edición)   │
+│  - PDFs  │   ┌─────────────────────┐       │              │
+│  - Recientes│   │                   │       │  - Propiedades│
+│  - Favoritos│  │    Vista PDF     │       │  - Herramientas│
+│          │   │                   │       │              │
+│          │   └─────────────────────┘       │              │
+├──────────┴─────────────────────────────────┴──────────────┤
+│  [Barra de estado: página actual | zoom | archivos]       │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Descripción de Paneles
+
+| Panel | Componente | Archivo Mockup |
+|-------|------------|----------------|
+| Splash | Pantalla carga | `assets/design/estart-cargando.png` |
+| Principal | Post inicio | `assets/design/2 panel despues del start.png` |
+| Sidebar | Árbol archivos | `assets/design/arbol de archivos.png` |
+| Búsqueda | Buscador | `assets/design/panel de busqueda.png` |
+| Lectura | Visor PDF | `assets/design/panel de lectura.png` |
+| Lateral | Edición | `assets/design/panel de edicion lateral.png` |
+| Ribbon | Menú cinta | `assets/design/panel de opciones en formato cinta.png` |
+| Configuración | Ajustes | `assets/design/paenel de configuracion.png` |
+| Ayuda | Atajos | `assets/design/panel de ayuda de teclas.png` |
+
+---
+
+## 12. Flujos de Usuario
 
 ### Para Desarrolladores GUI
 1. Usar variables de colors del tema
@@ -239,6 +326,45 @@ metadata:
 
 ---
 
+## 13. Guías de Implementación
+
+### Para Desarrolladores GUI
+1. Usar variables de colores del tema (One Dark Pro / Atom One Light)
+2. Mantener espaciado 8px grid
+3. Todos los botones deben tener hover
+4. Operaciones largas = barra progreso + threading
+5. Errores = messagebox.error
+6. Éxitos = messagebox.showinfo
+7. Implementar navegación entre paneles
+
+### Para Diseñadores
+1. Mantener consistencia con paleta One Dark/One Light
+2. Priorizar usabilidad sobre estética
+3. Testing en Windows nativo
+4. Accesibilidad: contraste mínimo 4.5:1
+
+---
+
+## 14. Estructura de Código GUI
+
+```
+src/gui/
+├── main_window.py           # Contenedor principal con panels
+├── splash_screen.py         # Splash animado
+├── widgets/
+│   ├── __init__.py
+│   ├── sidebar.py           # Árbol de archivos
+│   ├── viewer.py            # Panel de lectura/viso
+│   ├── editor.py            # Panel de edición lateral
+│   ├── ribbon.py            # Toolbar tipo cinta
+│   ├── search.py            # Panel de búsqueda
+│   └── settings.py          # Diálogo de configuración
+└── themes/
+    └── __init__.py          # DARK_THEME, LIGHT_THEME
+```
+
+---
+
 ## Commands disponibles
 
 1. **Show palette**: Mostrar paleta de colores actual
@@ -247,3 +373,5 @@ metadata:
 4. **Update theme**: Actualizar colores del tema
 5. **Export assets**: Exportar assets de diseño
 6. **Validate design**: Validar diseño contra guías
+7. **List panels**: Mostrar estructura de paneles
+8. **Show assets**: Listar assets disponibles
