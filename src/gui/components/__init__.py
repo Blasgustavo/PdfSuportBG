@@ -2,6 +2,8 @@ from .theme_manager import theme_manager, ThemeManager, DARK_THEME, LIGHT_THEME
 from .base import Component, ContainerComponent
 from .widgets import Button, Label, Input, ProgressBar
 from .window_controls import WindowControls
+from .document_card import DocumentCard, RecentDocumentsManager
+from .recent_panel import RecentPanel
 
 __all__ = [
     "theme_manager",
@@ -14,5 +16,8 @@ __all__ = [
     "Label",
     "Input",
     "ProgressBar",
-    "WindowControls"
+    "WindowControls",
+    "DocumentCard",
+    "RecentDocumentsManager",
+    "RecentPanel"
 ]
