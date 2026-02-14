@@ -83,13 +83,14 @@ PdfSuport/
 ## agregar funcionalidades faltantes
 
 ### Fase 0 - Diseño de la Aplicación
-- [ ] Mockups y wireframes de ventanas
-- [ ] Paleta de colores oficial
-- [ ] Tipografía y espaciado
-- [ ] Iconografía del programa
-- [ ] Flujos de usuario (UX)
-- [ ] Animaciones y transiciones
-- [ ] Assets de diseño (iconos, logos)
+- [x] Mockups y wireframes de ventanas
+- [x] Paleta de colores oficial
+- [x] Tipografía y espaciado
+- [x] Iconografía del programa
+- [x] Flujos de usuario (UX)
+- [x] Animaciones y transiciones
+- [x] Assets de diseño (iconos, logos)
+- [x] Splash Screen implementado
 
 ### Fase 1 - Estabilidad y UX
 - [x] Barra de progreso durante el procesamiento

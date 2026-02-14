@@ -5,6 +5,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from tkinter import Tk
 from src.gui.main_window import MainWindow
+from src.gui.splash_screen import SplashScreen
 from src.utils.logger import logger
 
 
@@ -14,9 +15,13 @@ def main():
     log = logger.get_logger()
     log.info("Iniciando Xebec PDF Fixer")
 
-    root = Tk()
-    app = MainWindow(root)
-    root.mainloop()
+    def run_main_app():
+        root = Tk()
+        app = MainWindow(root)
+        root.mainloop()
+
+    splash = SplashScreen()
+    splash.run(run_main_app)
 
 
 if __name__ == "__main__":
