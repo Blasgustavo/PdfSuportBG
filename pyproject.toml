@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "xebec-pdf-fixer"
+version = "0.0.1"
+description = "Herramienta de administración de PDFs para Windows"
+authors = [
+    {name = "BGNC", email = "bgnc@corporacionxebec.com"}
+]
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = [
+    "pypdf>=3.0.0",
+    "Pillow>=9.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pyinstaller>=5.0",
+    "pytest>=7.0",
+]
+
+[project.scripts]
+xebec-pdf-fixer = "src.main:main"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.pyinstaller]
+name = "XebecPDFFixer"
+onefile = true
+windowed = true

@@ -1,0 +1,28 @@
+{
+  "agents": {
+    "orchestrator": {
+      "type": "custom",
+      "prompt_path": ".opencode/agents/orchestrator/AGENT.md"
+    },
+    "pdf-engineer": {
+      "type": "custom",
+      "prompt_path": ".opencode/agents/pdf-engineer/AGENT.md"
+    },
+    "gui-developer": {
+      "type": "custom",
+      "prompt_path": ".opencode/agents/gui-developer/AGENT.md"
+    },
+    "docs-writer": {
+      "type": "custom",
+      "prompt_path": ".opencode/agents/docs-writer/AGENT.md"
+    }
+  },
+  "permission": {
+    "skill": {
+      "skill-sinc": "allow",
+      "skill-doc": "allow",
+      "skill-generate": "allow",
+      "skill-commit": "allow"
+    }
+  }
+}
