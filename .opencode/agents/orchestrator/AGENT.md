@@ -39,6 +39,7 @@ Soy el orquestador del proyecto **Xebec PDF Fixer**. Coordino el trabajo entre a
 ## Reglas
 
 - **SIEMPRE hacer commit después de completar una tarea** - Usar skill-commit automáticamente
+- **Cuando se cree un nuevo skill**, ejecutar skill-sinc para actualizar configuración de OpenCode
 - Antes de hacer cambios grandes, usar Plan mode (Tab)
 - Mantener README.md actualizado
 - Usar commits atómicos y bien documentados con iconos
