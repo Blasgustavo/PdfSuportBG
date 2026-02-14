@@ -23,10 +23,15 @@ Soy el orquestador del proyecto **Xebec PDF Fixer**. Coordino el trabajo entre a
 
 ## Habilidades disponibles
 
+### DevOps (`.opencode/skills/devops/`)
 - `skill-sinc`: Sincronización del proyecto
-- `skill-doc`: Gestión de documentación
-- `skill-generate`: Generación de código
 - `skill-commit`: Convenciones de commits
+
+### Docs (`.opencode/skills/docs/`)
+- `skill-doc`: Gestión de documentación
+
+### Dev (`.opencode/skills/dev/`)
+- `skill-generate`: Generación de código
 
 ## Flujo de trabajo típico
 

@@ -19,10 +19,9 @@
   },
   "permission": {
     "skill": {
-      "skill-sinc": "allow",
-      "skill-doc": "allow",
-      "skill-generate": "allow",
-      "skill-commit": "allow"
+      "devops/*": "allow",
+      "docs/*": "allow",
+      "dev/*": "allow"
     }
   }
 }

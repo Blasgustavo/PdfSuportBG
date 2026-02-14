@@ -23,7 +23,14 @@ PdfSuport/
 │   └── skills/              # Plugins
 ├── .opencode/               # Configuración OpenCode
 │   ├── agents/              # Agentes especializados
-│   └── skills/              # Skills reutilizables
+│   │   ├── orchestrator/
+│   │   ├── pdf-engineer/
+│   │   ├── gui-developer/
+│   │   └── docs-writer/
+│   └── skills/              # Skills por dominio
+│       ├── dev/             # Desarrollo
+│       ├── devops/          # DevOps (git, sync)
+│       └── docs/            # Documentación
 ├── tests/                   # Tests unitarios
 ├── assets/                  # Recursos estáticos
 └── README.md                # Documentación
@@ -58,9 +65,18 @@ PdfSuport/
 
 ## Available Skills
 
+### DevOps
 | Skill | Purpose |
 |-------|---------|
-| skill-sinc | Sincronización |
-| skill-doc | Documentación |
-| skill-generate | Generación código |
-| skill-commit | Commits |
+| skill-sinc | Sincronización y estado del repo |
+| skill-commit | Convenciones de commits |
+
+### Docs
+| Skill | Purpose |
+|-------|---------|
+| skill-doc | Documentación y README |
+
+### Dev
+| Skill | Purpose |
+|-------|---------|
+| skill-generate | Generación de código y scaffolds |
