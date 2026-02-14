@@ -15,6 +15,7 @@ class SplashScreen:
         self._setup_window()
         self._download_and_load_fonts()
         self._build_ui()
+        self._add_window_controls()
         self._center_window()
         
     def _download_and_load_fonts(self):
@@ -70,6 +71,71 @@ class SplashScreen:
         x = (self.root.winfo_screenwidth() // 2) - (width // 2)
         y = (self.root.winfo_screenheight() // 2) - (height // 2)
         self.root.geometry(f"{width}x{height}+{x}+{y}")
+        
+    def _add_window_controls(self):
+        self.root.attributes("-topmost", True)
+        
+        self.root.bind("<Button-1>", self._start_move)
+        self.root.bind("<B1-Motion>", self._do_move)
+        
+        close_btn = tk.Button(
+            self.root,
+            text="✕",
+            font=(self.font_name, 10),
+            bg="#0F0F0F",
+            fg="#C0392B",
+            bd=0,
+            width=2,
+            height=1,
+            pady=2,
+            command=self.close,
+            cursor="hand2",
+            relief="flat",
+            overrelief="flat",
+            activebackground="#C0392B",
+            activeforeground="white"
+        )
+        close_btn.place(x=570, y=10)
+        
+        min_btn = tk.Button(
+            self.root,
+            text="─",
+            font=(self.font_name, 10),
+            bg="#0F0F0F",
+            fg="#666666",
+            bd=0,
+            width=2,
+            height=1,
+            pady=2,
+            command=self._minimize_window,
+            cursor="hand2",
+            relief="flat",
+            overrelief="flat",
+            activebackground="#7F8C8D",
+            activeforeground="white"
+        )
+        min_btn.place(x=545, y=10)
+        
+        close_btn.lift()
+        min_btn.lift()
+        
+    def _start_move(self, event):
+        self.x = event.x
+        self.y = event.y
+        
+    def _do_move(self, event):
+        deltax = event.x - self.x
+        deltay = event.y - self.y
+        x = self.root.winfo_x() + deltax
+        y = self.root.winfo_y() + deltay
+        self.root.geometry(f"+{x}+{y}")
+        
+    def _minimize_window(self):
+        self.root.withdraw()
+        self.root.after(100, self._restore_minimized)
+        
+    def _restore_minimized(self):
+        self.root.deiconify()
         
     def _build_ui(self):
         print(f"Usando fuente: {self.font_name}")
@@ -183,7 +249,7 @@ class SplashScreen:
         
         for progress, status in steps:
             self.update_progress(progress, status)
-            time.sleep(1.5)
+            time.sleep(0.5)
             
     def close(self):
         self.root.destroy()
