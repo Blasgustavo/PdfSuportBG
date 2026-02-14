@@ -9,7 +9,7 @@ from src.utils.helpers import get_icon_path
 from src.utils.logger import logger
 from src.gui.components.theme_manager import theme_manager
 from src.gui.components.window_controls import WindowControls
-from src.gui.components.recent_panel import RecentPanel
+from src.gui.components.start_panel import StartPanel
 from src.gui.components.document_card import RecentDocumentsManager
 
 
@@ -28,7 +28,7 @@ class MainWindow:
         self._setup_theme()
         self._setup_icon()
         
-        self.current_panel = "recent"
+        self.current_panel = "start"
         self._build_ui()
         
         self.log = logger.get_logger()
@@ -37,8 +37,15 @@ class MainWindow:
     def _setup_window(self):
         screen_w = self.root.winfo_screenwidth()
         screen_h = self.root.winfo_screenheight()
-        self.root.geometry(f"{screen_w}x{screen_h}+0+0")
-        self.root.state('zoomed')
+        
+        window_width = 1200
+        window_height = 700
+        
+        x = (screen_w - window_width) // 2
+        y = (screen_h - window_height) // 2
+        
+        self.root.geometry(f"{window_width}x{window_height}+{x}+{y}")
+        self.root.minsize(900, 500)
         
     def _setup_theme(self):
         colors = theme_manager.colors
@@ -67,13 +74,12 @@ class MainWindow:
         
         self._create_title_bar()
         
-        self._recent_panel = RecentPanel(
+        self._start_panel = StartPanel(
             self._main_container,
             on_document_select=self._on_document_select,
-            on_new_document=self._on_new_document
+            on_navigate=self._on_navigate
         )
-        self.recent_panel_widget = self._recent_panel.get_widget()
-        self.recent_panel_widget.pack(fill="both", expand=True)
+        self._start_panel.get_widget().pack(fill="both", expand=True)
         
         self._window_controls = WindowControls(
             self.root,
@@ -120,12 +126,16 @@ class MainWindow:
         
         RecentDocumentsManager.add_document(file_path, file_name)
         
-        messagebox.showinfo(
-            "Documento seleccionado",
-            f"Se abrirá: {file_name}\n\nRuta: {file_path}"
-        )
+        if self._start_panel:
+            self._start_panel.refresh_documents()
         
-    def _on_new_document(self):
+    def _on_navigate(self, nav_id: str):
+        if nav_id == "nuevo":
+            self._open_new_document()
+        elif nav_id == "abrir":
+            self._open_document()
+            
+    def _open_new_document(self):
         file_path = filedialog.askopenfilename(
             title="Abrir PDF",
             filetypes=[("PDF files", "*.pdf")]
@@ -133,7 +143,17 @@ class MainWindow:
         if file_path:
             file_name = Path(file_path).name
             RecentDocumentsManager.add_document(file_path, file_name)
-            self._recent_panel.load_documents()
+            if self._start_panel:
+                self._start_panel.refresh_documents()
+                
+    def _open_document(self):
+        file_path = filedialog.askopenfilename(
+            title="Abrir PDF",
+            filetypes=[("PDF files", "*.pdf")]
+        )
+        if file_path:
+            file_name = Path(file_path).name
+            self._on_document_select(file_path, file_name)
             
     def _on_close(self):
         self.root.destroy()
@@ -150,22 +170,13 @@ class MainWindow:
             fg=colors.get("fg_primary", "#B2C2CD")
         )
         
-        if hasattr(self, '_recent_panel'):
-            self._recent_panel.update_theme()
+        if hasattr(self, '_start_panel'):
+            self._start_panel.update_theme()
             
         if hasattr(self, '_window_controls'):
             self._window_controls.update_theme()
             
-    def show_main_panel(self):
-        self.current_panel = "main"
-        if hasattr(self, 'recent_panel_widget'):
-            self.recent_panel_widget.pack_forget()
-            
-    def show_recent_panel(self):
-        self.current_panel = "recent"
-        if hasattr(self, 'recent_panel_widget'):
-            self.recent_panel_widget.pack(fill="both", expand=True)
-            
-    def set_status(self, text: str):
-        if hasattr(self, '_status_label'):
-            self._status_label.configure(text=text)
+    def show_start_panel(self):
+        self.current_panel = "start"
+        if hasattr(self, '_start_panel'):
+            self._start_panel.get_widget().pack(fill="both", expand=True)

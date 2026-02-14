@@ -4,6 +4,9 @@ from .widgets import Button, Label, Input, ProgressBar
 from .window_controls import WindowControls
 from .document_card import DocumentCard, RecentDocumentsManager
 from .recent_panel import RecentPanel
+from .sidebar import SidebarPanel, SidebarButton
+from .header_templates import WelcomeHeader, TemplatesSection, TemplateCard
+from .recent_table import RecentDocumentsTable
 
 __all__ = [
     "theme_manager",
@@ -19,5 +22,11 @@ __all__ = [
     "WindowControls",
     "DocumentCard",
     "RecentDocumentsManager",
-    "RecentPanel"
+    "RecentPanel",
+    "SidebarPanel",
+    "SidebarButton",
+    "WelcomeHeader",
+    "TemplatesSection",
+    "TemplateCard",
+    "RecentDocumentsTable"
 ]

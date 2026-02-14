@@ -54,7 +54,7 @@ class Button(Component):
             fg = "#FFFFFF"
             hover = "#C0392B"
         elif self.variant == "ghost":
-            bg = "transparent"
+            bg = colors.get("bg_primary", "#282A31")
             fg = colors.get("fg_primary", "#B2C2CD")
             hover = colors.get("bg_tertiary", "#2D333B")
         else:
