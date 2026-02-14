@@ -10,28 +10,31 @@ class SplashScreen:
         self.root = tk.Tk()
         self.root.overrideredirect(True)
         
+        self.font_name = "Segoe UI"
+        
         self._setup_window()
+        self._download_and_load_fonts()
         self._build_ui()
         self._center_window()
         
-    def _setup_window(self):
-        width = 600
-        height = 400
-        screen_w = self.root.winfo_screenwidth()
-        screen_h = self.root.winfo_screenheight()
-        x = (screen_w // 2) - (width // 2)
-        y = (screen_h // 2) - (height // 2)
-        self.root.geometry(f"{width}x{height}+{x}+{y}")
-        
-    def _center_window(self):
-        self.root.update_idletasks()
-        width = self.root.winfo_width()
-        height = self.root.winfo_height()
-        x = (self.root.winfo_screenwidth() // 2) - (width // 2)
-        y = (self.root.winfo_screenheight() // 2) - (height // 2)
-        self.root.geometry(f"{width}x{height}+{x}+{y}")
-        
-    def _get_font(self):
+    def _download_and_load_fonts(self):
+        try:
+            from src.utils.font_manager import FontManager
+            
+            print("Verificando fuentes...")
+            FontManager.download_fonts()
+            
+            loaded_font = FontManager.load_font(self.root, "JetBrainsMono")
+            if loaded_font:
+                self.font_name = "JetBrainsMono"
+                print(f"Fuente cargada: {self.font_name}")
+            else:
+                self.font_name = self._get_system_font()
+        except Exception as e:
+            print(f"Error cargando fuentes: {e}")
+            self.font_name = self._get_system_font()
+            
+    def _get_system_font(self):
         fonts = self.root.tk.call("font", "names")
         font_list = list(fonts) if fonts else []
         
@@ -51,9 +54,25 @@ class SplashScreen:
                 
         return "Segoe UI"
         
+    def _setup_window(self):
+        width = 600
+        height = 400
+        screen_w = self.root.winfo_screenwidth()
+        screen_h = self.root.winfo_screenheight()
+        x = (screen_w // 2) - (width // 2)
+        y = (screen_h // 2) - (height // 2)
+        self.root.geometry(f"{width}x{height}+{x}+{y}")
+        
+    def _center_window(self):
+        self.root.update_idletasks()
+        width = self.root.winfo_width()
+        height = self.root.winfo_height()
+        x = (self.root.winfo_screenwidth() // 2) - (width // 2)
+        y = (self.root.winfo_screenheight() // 2) - (height // 2)
+        self.root.geometry(f"{width}x{height}+{x}+{y}")
+        
     def _build_ui(self):
-        self.font_name = self._get_font()
-        print(f"Fuente seleccionada: {self.font_name}")
+        print(f"Usando fuente: {self.font_name}")
         
         canvas = tk.Canvas(
             self.root,
