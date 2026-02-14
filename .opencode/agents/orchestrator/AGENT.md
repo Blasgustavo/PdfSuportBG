@@ -38,7 +38,13 @@ Soy el orquestador del proyecto **Xebec PDF Fixer**. Coordino el trabajo entre a
 
 ## Reglas
 
+- **SIEMPRE hacer commit después de completar una tarea** - Usar skill-commit automáticamente
 - Antes de hacer cambios grandes, usar Plan mode (Tab)
 - Mantener README.md actualizado
-- Usar commits atómicos y bien documentados
+- Usar commits atómicos y bien documentados con iconos
 - Verificar funcionamiento después de cambios
+- Después de cada tarea completada, ejecutar:
+  1. `git status` para revisar cambios
+  2. Generar mensaje con skill-commit
+  3. Hacer commit automáticamente
+  4. Hacer push al final de la sesión
