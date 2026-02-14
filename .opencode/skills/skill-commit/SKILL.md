@@ -28,25 +28,25 @@ Formato: `<tipo>(<alcance>): <descripción>`
 
 ### Tipos de commit
 
-| Tipo | Descripción |
-|------|-------------|
-| `feat` | Nueva funcionalidad |
-| `fix` | Bugfix |
-| `docs` | Documentación |
-| `style` | Formato/código |
-| `refactor` | Refactorización |
-| `test` | Tests |
-| `chore` | Mantenimiento |
-| `perf` | Performance |
-| `build` | Build/CI |
+| Tipo | Icono | Descripción |
+|------|-------|-------------|
+| `feat` | ✨ | Nueva funcionalidad |
+| `fix` | 🐛 | Bugfix |
+| `docs` | 📚 | Documentación |
+| `style` | 💎 | Formato/código |
+| `refactor` | ♻️ | Refactorización |
+| `test` | ✅ | Tests |
+| `chore` | 🔧 | Mantenimiento |
+| `perf` | 🚀 | Performance |
+| `build` | 📦 | Build/CI |
 
 ### Ejemplos
 
 ```
-feat(core): agregar función para unir PDFs
-fix(gui): corregir error en tema oscuro
-docs(readme): actualizar lista de funcionalidades
-refactor(utils): simplificar logger
+✨ feat(core): agregar función para unir PDFs
+🐛 fix(gui): corregir error en tema oscuro
+📚 docs(readme): actualizar lista de funcionalidades
+♻️ refactor(utils): simplificar logger
 ```
 
 ## Commands disponibles
