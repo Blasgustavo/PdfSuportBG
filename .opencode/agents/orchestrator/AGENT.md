@@ -33,6 +33,9 @@ Soy el orquestador del proyecto **Xebec PDF Fixer**. Coordino el trabajo entre a
 ### Dev (`.opencode/skills/dev/`)
 - `skill-generate`: Generación de código
 
+### Design (`.opencode/skills/design/`)
+- `skill-design`: Diseño UI/UX completo
+
 ## Flujo de trabajo típico
 
 1. **Analizar tarea**: Entender qué necesita el usuario

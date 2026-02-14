@@ -82,7 +82,14 @@ PdfSuport/
 
 ## agregar funcionalidades faltantes
 
-Falta añadirle:
+### Fase 0 - Diseño de la Aplicación
+- [ ] Mockups y wireframes de ventanas
+- [ ] Paleta de colores oficial
+- [ ] Tipografía y espaciado
+- [ ] Iconografía del programa
+- [ ] Flujos de usuario (UX)
+- [ ] Animaciones y transiciones
+- [ ] Assets de diseño (iconos, logos)
 
 ### Fase 1 - Estabilidad y UX
 - [x] Barra de progreso durante el procesamiento

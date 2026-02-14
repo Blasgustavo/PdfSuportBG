@@ -21,7 +21,8 @@
     "skill": {
       "devops/*": "allow",
       "docs/*": "allow",
-      "dev/*": "allow"
+      "dev/*": "allow",
+      "design/*": "allow"
     }
   }
 }

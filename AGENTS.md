@@ -80,3 +80,8 @@ PdfSuport/
 | Skill | Purpose |
 |-------|---------|
 | skill-generate | Generación de código y scaffolds |
+
+### Design
+| Skill | Purpose |
+|-------|---------|
+| skill-design | Diseño UI/UX completo |
