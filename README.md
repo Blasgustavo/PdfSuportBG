@@ -1,14 +1,24 @@
-# 🖥️ PROGRAMA COMPLETO – “Xebec PDF Fixer”
+# 🖥️ Xebec Pdf
 
-Branding: Corporación Xebec
+**Gestor de documentos PDF para Windows**
 
-Autor: BGNC
-
-Versión: 0.0.1vs
+Branding: Corporación Xebec  
+Autor: BGNC  
+Versión: 0.0.1
 
 ---
 
-Interfaz gráfica con Tkinter, branding y funciones completas, y falta completar
+Aplicación de escritorio profesional para administrar, visualizar y editar archivos PDF con interfaz moderna inspirada en Microsoft Office.
+
+## ✨ Características
+
+- 🎨 **Interfaz moderna** con tema oscuro One Dark Pro
+- 📄 **Panel de inicio** con documentos recientes y plantillas
+- 🖼️ **Splash screen** animado con branding corporativo
+- 🔧 **Herramientas PDF**: Reparar, unir, dividir, extraer páginas
+- 🎭 **Sistema de componentes UI** modular y reutilizable
+- 📝 **Gestión de documentos** con historial y auto-guardado
+- 🔍 **Búsqueda integrada** de documentos
 
 ## Requisitos previos:
 
@@ -16,23 +26,18 @@ Interfaz gráfica con Tkinter, branding y funciones completas, y falta completar
 pip install -r requirements.txt
 ```
 
+## 🚀 Ejecutar la aplicación
+
+```bash
+python src/main.py
+```
+
 ## 🟦 Convertirlo en un .EXE para tu escritorio
 
-Cuando ya esté funcionando, puedes convertirlo en un ejecutable:
 ```bash
 pip install pyinstaller
-pyinstaller --onefile --windowed --icon=assets/icons/xebec_icon.png src/main.py
+pyinstaller --onefile --windowed --icon=assets/icons/icono.png src/main.py
 ```
----
-
-## 🎯 ¿Qué hace este programa?
-
-Se abre como una ventana normal de Windows
-
-- Tiene branding profesional
-- Permite seleccionar cualquier carpeta
-- Repara todos los PDFs automáticamente
-- Guarda los reparados en /fixed
 
 ---
 
@@ -40,82 +45,109 @@ Se abre como una ventana normal de Windows
 
 ```
 PdfSuport/
-├── src/                    # Código fuente principal
-│   ├── __init__.py
-│   ├── main.py             # Punto de entrada
-│   ├── gui/                # Interfaz gráfica
-│   │   ├── __init__.py
-│   │   ├── main_window.py
-│   │   ├── widgets/        # Componentes reutilizables
-│   │   └── themes/         # Temas (claro/oscuro)
-│   ├── core/               # Lógica de negocio
-│   │   ├── __init__.py
-│   │   ├── pdf_repair.py   # Reparar PDFs
-│   │   ├── pdf_merge.py    # Unir PDFs
-│   │   ├── pdf_split.py    # Dividir PDFs
-│   │   ├── pdf_extract.py  # Extraer páginas
-│   │   └── pdf_delete.py   # Eliminar hojas
-│   ├── utils/              # Utilidades
-│   │   ├── __init__.py
-│   │   ├── logger.py       # Logging
-│   │   └── helpers.py
-│   └── skills/             # Habilidades/Plugins (extensiones)
-│       ├── __init__.py
-│       └── base.py         # Clase base para skills
-├── tests/                  # Tests unitarios
-│   ├── __init__.py
-│   └── test_core.py
-├── assets/                 # Recursos estáticos
-│   ├── icons/
-│   └── splash/
-├── docs/                   # Documentación
-├── dist/                   # Builds generados
-├── build/                  # Archivos de build
-├── scripts/                # Scripts de utilidad
-├── requirements.txt        # Dependencias
-├── setup.py                # Configuración del paquete
-├── pyproject.toml          # Configuración moderna
-└── README.md
+├── src/                           # Código fuente principal
+│   ├── main.py                    # Punto de entrada
+│   ├── core/                      # Lógica de negocio PDF
+│   │   └── pdf_repair.py          # Reparar PDFs
+│   ├── gui/                       # Interfaz gráfica
+│   │   ├── main_window.py         # Ventana principal
+│   │   ├── splash_screen.py       # Pantalla de carga
+│   │   ├── components/            # Componentes UI
+│   │   │   ├── sidebar.py         # Panel lateral
+│   │   │   ├── header_templates.py # Header y plantillas
+│   │   │   ├── recent_table.py    # Tabla de recientes
+│   │   │   ├── start_panel.py     # Panel de inicio
+│   │   │   ├── widgets.py         # Botones, inputs, etc.
+│   │   │   ├── window_controls.py # Controles de ventana
+│   │   │   └── theme_manager.py   # Gestor de temas
+│   │   └── themes/                # Temas (One Dark Pro)
+│   └── utils/                     # Utilidades
+│       ├── logger.py              # Logging
+│       └── font_manager.py        # Gestor de fuentes
+├── assets/                        # Recursos estáticos
+│   ├── icons/                     # Iconos (logo.png, icono.png)
+│   ├── fonts/                     # Fuentes (JetBrains Mono)
+│   └── design/                    # Mockups de diseño
+├── .opencode/                     # Configuración OpenCode
+│   ├── agents/                    # Agentes especializados
+│   └── skills/                    # Skills por dominio
+├── requirements.txt               # Dependencias
+└── README.md                      # Este archivo
 ```
 
 ---
 
-## agregar funcionalidades faltantes
+## 📋 Funcionalidades Implementadas
 
-### Fase 0 - Diseño de la Aplicación
-- [x] Mockups y wireframes de ventanas
-- [x] Paleta de colores oficial
-- [x] Tipografía y espaciado
-- [x] Iconografía del programa
-- [x] Flujos de usuario (UX)
-- [x] Animaciones y transiciones
-- [x] Assets de diseño (iconos, logos)
-- [x] Splash Screen implementado
+### ✅ Completadas
+- [x] Splash screen animado con progreso
+- [x] Panel de inicio con sidebar, plantillas y documentos recientes
+- [x] Sistema de componentes UI modular
+- [x] Tema oscuro One Dark Pro
+- [x] Fuentes JetBrains Mono descargadas automáticamente
+- [x] Gestión de documentos recientes (JSON)
+- [x] Reparación de PDFs
+- [x] Logging detallado
+- [x] Skills de OpenCode configuradas
 
-### Fase 1 - Estabilidad y UX
-- [x] Barra de progreso durante el procesamiento
-- [x] Reparar un solo PDF (botón adicional)
-- [x] Tema oscuro
-- [x] Logs detallados (ventana o archivo)
-- [ ] Splash screen con logo de Xebec
-
-### Fase 2 - Funcionalidades PDF
-- [ ] Unir PDFs (combinar archivos)
-- [ ] Separar/Dividir PDF (extraer páginas)
+### 🔄 En desarrollo
+- [ ] Unir PDFs
+- [ ] Separar/Dividir PDF
 - [ ] Eliminar hojas específicas
 - [ ] Rotar páginas
-- [ ] Reordenar páginas (drag & drop)
+- [ ] Reordenar páginas
 
-### Fase 3 - Escalabilidad
-- [ ] Sistema de plugins para extensiones
-- [ ] Historial de operaciones
-- [ ] Exportar a otros formatos (imágenes)
-- [ ] Cifrado/Descifrado PDFs
+### 📋 Pendientes
+- [ ] Tests unitarios
+- [ ] CI/CD para builds automáticos
+- [ ] Installer profesional (Inno Setup)
+- [ ] Exportar a otros formatos
+- [ ] Cifrado/Descifrado de PDFs
 
-### Mejoras Técnicas
-- [x] Migrar de PyPDF2 (deprecated) a pypdf o pymupdf
-- [ ] Añadir tests unitarios
-- [ ] Configurar CI/CD para builds automáticos
-- [ ] Crear installer profesional (Inno Setup, NSIS)
+---
 
-Solo dime qué más quieres que tenga.
+## 🎨 Sistema de Diseño
+
+### Paleta de Colores (One Dark Pro)
+- **Background**: `#282A31`
+- **Foreground**: `#B2C2CD`
+- **Accent**: `#528BFF`
+- **Success**: `#98C379`
+- **Warning**: `#E5C07B`
+- **Error**: `#E06C75`
+
+### Tipografía
+- **Primaria**: JetBrains Mono (descargada automáticamente)
+- **Secundaria**: Segoe UI (sistema)
+
+---
+
+## 🤖 OpenCode Configuration
+
+El proyecto está configurado para usar OpenCode con:
+
+### Agentes
+- `orchestrator`: Coordina el desarrollo
+- `pdf-engineer`: Funcionalidades PDF
+- `gui-developer`: Interfaz gráfica
+
+### Skills
+- `skill-sinc`: Sincronización del proyecto
+- `skill-doc`: Documentación
+- `skill-generate`: Generación de código
+- `skill-commit`: Convenciones de commits
+- `skill-design`: Diseño UI/UX
+
+---
+
+## 📝 Licencia
+
+MIT License - Corporación Xebec
+
+## 👨‍💻 Autor
+
+BGNC - Desarrollador Principal
+
+---
+
+¿Tienes alguna sugerencia o encuentras algún bug? ¡Abre un issue en GitHub!
