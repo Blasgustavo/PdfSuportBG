@@ -1,5 +1,5 @@
 ---
-name: skill-doc
+name: doc
 description: Gestiona la documentación del proyecto, especialmente README.md y archivos de configuración
 license: MIT
 compatibility: opencode

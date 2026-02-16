@@ -1,5 +1,5 @@
 ---
-name: skill-commit
+name: commit
 description: Gestiona conventciones de commits, crea mensajes siguen estándares y facilita el proceso de commit
 license: MIT
 compatibility: opencode

@@ -1,5 +1,5 @@
 ---
-name: skill-generate
+name: generate
 description: Genera código, scaffolds, plantillas y estructura para nuevas funcionalidades del proyecto
 license: MIT
 compatibility: opencode

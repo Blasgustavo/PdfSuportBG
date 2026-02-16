@@ -1,5 +1,5 @@
 ---
-name: skill-sinc
+name: sinc
 description: Sincroniza el proyecto, verifica cambios, actualiza dependencias y verifica estado del repositorio
 license: MIT
 compatibility: opencode

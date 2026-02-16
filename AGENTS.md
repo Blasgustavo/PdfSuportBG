@@ -1,16 +1,207 @@
-# Xebec Pdf - Project Agents
+# Xebec Pdf - AGENTS.md
 
 ## Project Overview
 
 **Xebec Pdf** - Aplicación de escritorio profesional para administrar PDFs en Windows con interfaz moderna inspirada en Microsoft Office.
 
-## Technology Stack
+- **Python**: 3.8+
+- **GUI**: Tkinter con tema personalizado
+- **PDF**: pypdf
+- **Build**: PyInstaller
 
-- Python 3.8+
-- Tkinter (GUI) con tema personalizado
-- pypdf (procesamiento PDF)
-- PyInstaller (build .exe)
-- JetBrains Mono (fuente principal)
+---
+
+## Build, Lint, and Test Commands
+
+### Running the Application
+
+```bash
+# Development mode
+python src/main.py
+
+# With debug logging
+python -c "import logging; logging.basicConfig(level=logging.DEBUG); exec(open('src/main.py').read())"
+```
+
+### Running Tests
+
+```bash
+# Install test dependencies
+pip install pytest>=7.0
+
+# Run all tests
+pytest
+
+# Run all tests with verbose output
+pytest -v
+
+# Run a single test file
+pytest tests/test_pdf_repair.py
+
+# Run a single test function
+pytest tests/test_pdf_repair.py::test_repair_single_pdf -v
+
+# Run tests matching a pattern
+pytest -k "repair"
+
+# Run with coverage (if coverage is installed)
+pip install pytest-cov
+pytest --cov=src --cov-report=term-missing
+```
+
+### Building Executable
+
+```bash
+# Install PyInstaller
+pip install pyinstaller>=5.0
+
+# Build single-file executable
+pyinstaller --onefile --windowed --icon=assets/icons/icono.png --name "XebecPdf" src/main.py
+
+# Output located at: dist/XebecPdf.exe
+```
+
+### Code Quality (Linting)
+
+```bash
+# Install linting tools (recommended)
+pip install ruff mypy
+
+# Run ruff linter
+ruff check src/
+
+# Run ruff with auto-fix
+ruff check --fix src/
+
+# Run type checking
+mypy src/
+
+# Format code
+ruff format src/
+```
+
+---
+
+## Code Style Guidelines
+
+### Imports
+
+```python
+# Standard library first, then third-party, then local
+import logging
+from pathlib import Path
+from typing import Tuple, Optional, List
+
+from pypdf import PdfReader, PdfWriter
+
+from src.core.pdf_repair import PDFRepairer
+from src.utils.logger import get_logger
+```
+
+- Use absolute imports from `src`
+- Group imports with blank lines between groups
+- Sort imports alphabetically within groups
+
+### Type Hints
+
+- **Always use type hints** for function parameters and return types
+- Use `Optional[X]` instead of `X | None` (Python 3.8+ compatibility)
+- Use `Tuple[X, Y]` for multiple return values
+
+```python
+# Good
+def repair(input_path: Path, output_path: Path) -> Tuple[bool, Optional[str]]:
+    ...
+
+# Good
+def process_files(files: List[Path]) -> dict:
+    ...
+```
+
+### Naming Conventions
+
+| Element | Convention | Example |
+|---------|------------|---------|
+| Classes | PascalCase | `PDFRepairer`, `Component` |
+| Functions/methods | snake_case | `repair_pdf()`, `update_theme()` |
+| Variables | snake_case | `input_path`, `output_folder` |
+| Constants | UPPER_SNAKE_CASE | `MAX_PAGES = 1000` |
+| Private methods | _snake_case | `_apply_fg()`, `_create_container()` |
+| Files | snake_case | `pdf_repair.py`, `main_window.py` |
+
+### Error Handling
+
+- Return `Tuple[bool, Optional[str]]` for operations that can fail
+- Use try/except for operations that need cleanup
+- Log errors before returning failure
+
+```python
+# Pattern for operations that can fail
+def operation(file_path: Path) -> Tuple[bool, Optional[str]]:
+    try:
+        # risky operation
+        return True, None
+    except Exception as e:
+        logger.error(f"Operation failed: {e}")
+        return False, str(e)
+```
+
+### GUI Components
+
+- Inherit from `Component` base class (abc.ABC)
+- Implement `update_theme()` method for theme changes
+- Support `theme_manager` for dynamic colors
+- Use threading for long-running operations
+
+```python
+class MyComponent(Component):
+    def __init__(self, parent: tk.Widget, **kwargs):
+        super().__init__(parent, **kwargs)
+        self._create_widget()
+    
+    def update_theme(self):
+        # Apply theme colors
+        pass
+```
+
+### Class Structure
+
+```python
+class MyClass:
+    def __init__(self, param: str):
+        self.param = param
+        self._private = None
+    
+    @property
+    def value(self) -> str:
+        return self._private
+    
+    @value.setter
+    def value(self, val: str):
+        self._private = val
+    
+    @staticmethod
+    def utility_method(arg: str) -> bool:
+        ...
+    
+    def instance_method(self) -> Tuple[bool, Optional[str]]:
+        ...
+```
+
+### Logging
+
+- Use the project's logger: `from src.utils.logger import get_logger`
+- Log at appropriate levels: DEBUG, INFO, WARNING, ERROR
+- Include context in log messages
+
+```python
+logger = get_logger(__name__)
+
+logger.info("Starting PDF repair")
+logger.error(f"Failed to repair {file}: {error}")
+```
+
+---
 
 ## Project Structure
 
@@ -18,127 +209,98 @@
 PdfSuport/
 ├── src/
 │   ├── main.py                    # Entry point
-│   ├── core/                      # Lógica de negocio PDF
-│   │   └── pdf_repair.py          # Reparar PDFs
-│   ├── gui/                       # Interfaz gráfica
-│   │   ├── main_window.py         # Ventana principal
-│   │   ├── splash_screen.py       # Splash screen
-│   │   ├── components/            # Componentes UI modulares
-│   │   │   ├── sidebar.py         # Panel lateral
-│   │   │   ├── header_templates.py # Header y plantillas
-│   │   │   ├── recent_table.py    # Tabla de recientes
-│   │   │   ├── start_panel.py     # Panel de inicio
-│   │   │   ├── widgets.py         # Botones, inputs, etc.
-│   │   │   ├── window_controls.py # Controles de ventana
-│   │   │   └── theme_manager.py   # Gestor de temas
-│   │   └── themes/                # Temas (One Dark Pro)
-│   └── utils/                     # Utilidades
-│       ├── logger.py              # Logging
-│       └── font_manager.py        # Gestor de fuentes
-├── .opencode/                     # Configuración OpenCode
-│   ├── agents/                    # Agentes especializados
-│   │   ├── orchestrator/
-│   │   ├── pdf-engineer/
-│   │   ├── gui-developer/
-│   │   └── docs-writer/
-│   └── skills/                    # Skills por dominio
-│       ├── dev/                   # Desarrollo
-│       ├── devops/                # DevOps (git, sync)
-│       ├── docs/                  # Documentación
-│       └── design/                # Diseño UI/UX
-├── assets/                        # Recursos estáticos
-│   ├── icons/                     # Iconos
-│   ├── fonts/                     # Fuentes
-│   └── design/                    # Mockups
-└── README.md                      # Documentación
+│   ├── core/                      # PDF business logic
+│   │   └── pdf_repair.py
+│   ├── gui/                       # GUI components
+│   │   ├── main_window.py
+│   │   ├── splash_screen.py
+│   │   ├── components/
+│   │   │   ├── base.py           # Component base class
+│   │   │   ├── widgets.py
+│   │   │   ├── theme_manager.py
+│   │   │   └── ...
+│   │   └── themes/
+│   └── utils/
+│       ├── logger.py
+│       └── font_manager.py
+├── tests/                         # Test files
+│   └── test_*.py
+├── assets/
+│   ├── icons/
+│   └── fonts/
+├── pyproject.toml
+├── requirements.txt
+└── README.md
 ```
 
-## Coding Patterns
+---
 
-### Python Modules
-- Usar type hints completos
-- Métodos estáticos para utilities
-- Logging con `src.utils.logger`
-- Retornar `Tuple[bool, Optional[str]]` para resultados
+## Theme Colors (One Dark Pro)
 
-### GUI (Tkinter)
-- **Tema oscuro One Dark Pro** por defecto
-- Sistema de componentes UI modular
-- Soporte para cambio dinámico de temas
-- Fuente JetBrains Mono con fallback
-- Usar threading para operaciones largas
-- Manejo de errores con messagebox
+| Name | Hex |
+|------|-----|
+| Background | `#282A31` |
+| Foreground | `#B2C2CD` |
+| Accent | `#528BFF` |
+| Success | `#98C379` |
+| Warning | `#E5C07B` |
+| Error | `#E06C75` |
 
-### Componentes UI
-- Heredar de clase base `Component`
-- Soporte para `theme_manager` para colores dinámicos
-- Métodos `update_theme()` para actualizar estilos
-- Soporte para múltiples tamaños y variantes
+---
 
-### Commits
-- Conventional Commits con iconos: `<tipo>(<alcance>): <descripción>`
-- Tipos: ✨ feat, 🐛 fix, 📚 docs, ♻️ refactor, ✅ test, 🔧 chore
-- Siempre hacer commit después de cada tarea completada
+## Git Commit Conventions
 
-## Available Agents
+Format: `<type>(<scope>): <description>`
 
-| Agent | Purpose | Location |
-|-------|---------|----------|
-| orchestrator | Coordina desarrollo | `.opencode/agents/orchestrator/` |
-| pdf-engineer | Funcionalidades PDF | `.opencode/agents/pdf-engineer/` |
-| gui-developer | Interfaz gráfica | `.opencode/agents/gui-developer/` |
-| docs-writer | Documentación | `.opencode/agents/docs-writer/` |
+Types:
+- `feat` - New feature
+- `fix` - Bug fix
+- `refactor` - Code refactoring
+- `test` - Tests
+- `docs` - Documentation
+- `chore` - Maintenance
 
-## Available Skills
+Example: `feat(pdf): add PDF merge functionality`
 
-### DevOps
-| Skill | Purpose |
-|-------|---------|
-| skill-sinc | Sincronización y estado del repo |
-| skill-commit | Convenciones de commits con iconos |
+---
 
-### Docs
-| Skill | Purpose |
-|-------|---------|
-| skill-doc | Documentación y README |
+## Testing Best Practices
 
-### Dev
-| Skill | Purpose |
-|-------|---------|
-| skill-generate | Generación de código y scaffolds |
+1. Place tests in `tests/` directory
+2. Name test files: `test_<module>.py`
+3. Name test functions: `test_<description>()`
+4. Use pytest fixtures for common setup
+5. Mock external dependencies (file I/O, pypdf)
+6. Test both success and failure paths
 
-### Design
-| Skill | Purpose |
-|-------|---------|
-| skill-design | Diseño UI/UX completo |
+```python
+# tests/test_pdf_repair.py
+import pytest
+from pathlib import Path
+from src.core.pdf_repair import PDFRepairer
 
-## Flujo de Trabajo
+def test_repair_valid_pdf(tmp_path):
+    input_file = tmp_path / "input.pdf"
+    output_file = tmp_path / "output.pdf"
+    # ... create test PDF ...
+    
+    success, error = PDFRepairer.repair(input_file, output_file)
+    
+    assert success is True
+    assert error is None
+    assert output_file.exists()
+```
 
-1. **Splash Screen** → Muestra branding y carga recursos
-2. **Panel de Inicio** → Documentos recientes + plantillas
-3. **Selección** → Cargar PDF en visor principal
-4. **Edición** → Herramientas PDF (reparar, unir, dividir, etc.)
+---
 
-## Funcionalidades Implementadas
+## Dependencies
 
-✅ Splash screen con animación y progreso  
-✅ Panel de inicio con sidebar, plantillas y recientes  
-✅ Sistema de componentes UI modular  
-✅ Tema oscuro One Dark Pro  
-✅ Fuentes JetBrains Mono automáticas  
-✅ Gestión de documentos recientes  
-✅ Reparación de PDFs  
+### Runtime
+- `pypdf>=3.0.0`
+- `Pillow>=9.0.0`
 
-## Temas Soportados
-
-- **One Dark Pro** (oscuro) - Tema principal
-- **Atom One Light** (claro) - Alternativa
-
-## Colores del Tema (One Dark Pro)
-
-- Background: `#282A31`
-- Foreground: `#B2C2CD`
-- Accent: `#528BFF`
-- Success: `#98C379`
-- Warning: `#E5C07B`
-- Error: `#E06C75`
+### Development
+- `pyinstaller>=5.0` - Build executable
+- `pytest>=7.0` - Testing
+- `ruff` - Linting/formatting
+- `mypy` - Type checking
