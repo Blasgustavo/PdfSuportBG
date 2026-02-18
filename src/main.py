@@ -3,9 +3,11 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from tkinter import Tk
-from src.gui.main_window import MainWindow
-from src.gui.splash_screen import SplashScreen
+from PyQt6.QtWidgets import QApplication
+from PyQt6.QtCore import QTimer
+from src.gui.pyqt6.main_window import MainWindow
+from src.gui.pyqt6.splash_screen import SplashScreen
+from src.gui.pyqt6.theme_manager import theme_manager
 from src.utils.logger import logger
 
 
@@ -13,15 +15,26 @@ def main():
     log_dir = Path.cwd() / "logs"
     logger.setup(log_dir=log_dir)
     log = logger.get_logger()
-    log.info("Iniciando Xebec PDF Fixer")
+    log.info("Iniciando Xebec PDF Fixer con PyQt6")
 
-    def run_main_app():
-        root = Tk()
-        app = MainWindow(root)
-        root.mainloop()
-
+    app = QApplication(sys.argv)
+    app.setApplicationName("Xebec Pdf")
+    app.setOrganizationName("Corporación Xebec")
+    
+    window = MainWindow()
+    
     splash = SplashScreen()
-    splash.run(run_main_app)
+    splash.show()
+    
+    def finish_splash():
+        splash.finish(window)
+        window.show()
+        theme_manager.theme_changed.emit()
+    
+    QTimer.singleShot(100, finish_splash)
+    splash.simulate_loading(lambda: None)
+    
+    sys.exit(app.exec())
 
 
 if __name__ == "__main__":

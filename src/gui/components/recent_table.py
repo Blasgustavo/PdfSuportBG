@@ -31,13 +31,13 @@ class RecentDocumentsTable:
         
         title = tk.Label(
             self._frame,
-            text="📄 Recientes",
+            text="Documentos Recientes",
             font=("Segoe UI Semibold", 14),
             bg=colors.get("bg_primary", "#282A31"),
             fg=colors.get("fg_primary", "#B2C2CD"),
             anchor="w"
         )
-        title.pack(fill="x", padx=30, pady=(20, 10))
+        title.pack(fill="x", padx=30, pady=(20, 5))
         
         table_frame = tk.Frame(
             self._frame,
@@ -75,19 +75,17 @@ class RecentDocumentsTable:
         
         self._tree = ttk.Treeview(
             table_frame,
-            columns=("name", "location", "date"),
+            columns=("name", "date"),
             show="headings",
             style="Treeview",
             selectmode="browse"
         )
         
         self._tree.heading("name", text="Nombre", anchor="w")
-        self._tree.heading("location", text="Ubicación", anchor="w")
         self._tree.heading("date", text="Fecha de modificación", anchor="w")
         
-        self._tree.column("name", width=300, minwidth=200)
-        self._tree.column("location", width=200, minwidth=150)
-        self._tree.column("date", width=180, minwidth=120)
+        self._tree.column("name", width=400, minwidth=200)
+        self._tree.column("date", width=200, minwidth=120)
         
         self._tree.pack(fill="both", expand=True)
         
@@ -106,10 +104,9 @@ class RecentDocumentsTable:
             path = doc.get('path', '')
             modified = doc.get('modified', '')
             
-            location = str(Path(path).parent) if path else 'Unknown'
             date_str = self._format_date(modified)
             
-            self._tree.insert("", "end", values=(name, location, date_str), tags=(path,))
+            self._tree.insert("", "end", values=(name, date_str), tags=(path,))
             
     def _format_date(self, date_str: str) -> str:
         try:
@@ -154,6 +151,3 @@ class RecentDocumentsTable:
         
     def get_widget(self):
         return self._frame
-
-
-from pathlib import Path
