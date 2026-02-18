@@ -1,0 +1,9 @@
+{
+  "name": "skill-doc",
+  "description": "Documentation - generates and maintains project documentation",
+  "capabilities": [
+    "generate_readme",
+    "generate_api_docs",
+    "update_changelog"
+  ]
+}

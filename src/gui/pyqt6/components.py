@@ -1,7 +1,8 @@
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, 
     QFrame, QListWidget, QListWidgetItem, QFileDialog, QLineEdit,
-    QTextEdit, QTabWidget, QScrollArea, QScrollBar, QTableWidget, QTableWidgetItem
+    QTextEdit, QTabWidget, QScrollArea, QScrollBar, QTableWidget, QTableWidgetItem,
+    QHeaderView, QSizePolicy
 )
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QFont, QPixmap
@@ -13,6 +14,7 @@ import fitz
 from src.gui.pyqt6.theme_manager import theme_manager
 from src.core.pdf_repair import PDFRepairer
 from src.gui.components.document_card import RecentDocumentsManager
+from src.utils.recent_files import SystemRecentFiles
 
 
 import sys
@@ -73,6 +75,7 @@ class SidebarButton(QPushButton):
 
 class Sidebar(QFrame):
     navigation_requested = pyqtSignal(str)
+    open_editor = pyqtSignal()
     
     def __init__(self, parent: Optional[QWidget] = None):
         super().__init__(parent)
@@ -91,7 +94,8 @@ class Sidebar(QFrame):
         self.home_btn.clicked.connect(lambda: self.navigation_requested.emit("home"))
         
         self.new_btn = self._create_nav_button("📄", "Nuevo")
-        self.new_btn.clicked.connect(lambda: self.navigation_requested.emit("new"))
+        self.new_btn.clicked.connect(self._open_editor)
+        self.new_btn.setEnabled(True)
         
         self.open_btn = self._create_nav_button("📂", "Abrir")
         self.open_btn.clicked.connect(self._open_file)
@@ -109,6 +113,12 @@ class Sidebar(QFrame):
         
         layout.addWidget(self.settings_btn)
         layout.addWidget(self.account_btn)
+    
+    def _on_new_clicked(self):
+        self.open_editor.emit()
+
+    def _open_editor(self):
+        self.open_editor.emit()
 
     def _create_nav_button(self, icon: str, text: str) -> QPushButton:
         btn = QPushButton()
@@ -177,23 +187,48 @@ class RecentDocumentsWidget(QFrame):
         self._setup_ui()
         
         theme_manager.theme_changed.connect(self._apply_style)
+    
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self._update_column_widths()
+    
+    def _update_column_widths(self):
+        if self.table_widget:
+            total_width = self.table_widget.viewport().width()
+            if total_width > 0:
+                self.table_widget.setColumnWidth(0, int(total_width * 2 / 3))
+                self.table_widget.setColumnWidth(1, int(total_width * 1 / 3))
 
     def _setup_ui(self):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
         
+        scroll_area = QScrollArea()
+        scroll_area.setObjectName("recentScroll")
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setFrameShape(QFrame.Shape.NoFrame)
+        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        
         self.table_widget = QTableWidget()
         self.table_widget.setObjectName("recentTable")
         self.table_widget.setColumnCount(2)
         self.table_widget.setHorizontalHeaderLabels(["Nombre", "Fecha de modificación"])
-        self.table_widget.horizontalHeader().setStretchLastSection(True)
+        
+        header = self.table_widget.horizontalHeader()
+        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)
+        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Fixed)
+        header.setDefaultAlignment(Qt.AlignmentFlag.AlignLeft)
+        
         self.table_widget.verticalHeader().setVisible(False)
         self.table_widget.setShowGrid(False)
         self.table_widget.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.table_widget.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
         self.table_widget.cellDoubleClicked.connect(self._on_document_click)
-        layout.addWidget(self.table_widget)
+        self.table_widget.currentItemChanged.connect(self._on_document_selected)
+        
+        scroll_area.setWidget(self.table_widget)
+        layout.addWidget(scroll_area)
 
     def add_document(self, file_path: str, file_name: str, modified_date: str = ""):
         row = self.table_widget.rowCount()
@@ -201,9 +236,11 @@ class RecentDocumentsWidget(QFrame):
         
         name_item = QTableWidgetItem(file_name)
         name_item.setData(Qt.ItemDataRole.UserRole, file_path)
+        name_item.setFlags(name_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
         self.table_widget.setItem(row, 0, name_item)
         
         date_item = QTableWidgetItem(modified_date)
+        date_item.setFlags(date_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
         self.table_widget.setItem(row, 1, date_item)
 
     def _on_document_click(self, row: int, column: int):
@@ -212,7 +249,20 @@ class RecentDocumentsWidget(QFrame):
             file_path = name_item.data(Qt.ItemDataRole.UserRole)
             file_name = name_item.text()
             if file_path:
-                self.document_selected.emit(file_path, file_name)
+                self._open_document(file_path, file_name)
+    
+    def _on_document_selected(self, current, previous):
+        if current:
+            row = current.row()
+            name_item = self.table_widget.item(row, 0)
+            if name_item:
+                file_path = name_item.data(Qt.ItemDataRole.UserRole)
+                file_name = name_item.text()
+                if file_path:
+                    self._open_document(file_path, file_name)
+    
+    def _open_document(self, file_path: str, file_name: str):
+        self.document_selected.emit(file_path, file_name)
 
     def _apply_style(self):
         colors = theme_manager.colors
@@ -220,6 +270,10 @@ class RecentDocumentsWidget(QFrame):
             QFrame#recentDocs {{
                 background-color: {colors['bg_tertiary']};
                 border-radius: 12px;
+            }}
+            QScrollArea#recentScroll {{
+                border: none;
+                background-color: transparent;
             }}
             QTableWidget#recentTable {{
                 background-color: transparent;
@@ -243,6 +297,31 @@ class RecentDocumentsWidget(QFrame):
                 padding: 8px;
                 border: none;
                 font-weight: bold;
+                text-align: left;
+            }}
+            QScrollBar:vertical {{
+                width: 10px;
+                background: transparent;
+                border: none;
+            }}
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
+                border: none;
+                background: none;
+            }}
+            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {{
+                background: none;
+            }}
+            QScrollBar::handle:vertical {{
+                background: {colors['bg_current_line']};
+                min-height: 40px;
+                border-radius: 5px;
+                margin: 2px;
+            }}
+            QScrollBar::handle:vertical:hover {{
+                background: {colors['accent']};
+            }}
+            QScrollBar::handle:vertical:pressed {{
+                background: {colors['accent_hover']};
             }}
         """)
 
@@ -317,7 +396,7 @@ class StartPanel(QWidget):
         self._load_recent_documents()
 
     def _load_recent_documents(self):
-        recent_docs = RecentDocumentsManager.get_recent_documents(limit=10)
+        recent_docs = SystemRecentFiles.get_pdfs(limit=20)
         for doc in recent_docs:
             name = doc.get('name', 'Documento')
             path = doc.get('path', '')

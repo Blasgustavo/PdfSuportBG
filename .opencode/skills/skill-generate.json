@@ -1,0 +1,9 @@
+{
+  "name": "skill-generate",
+  "description": "Code generation - generates boilerplate code, tests, components",
+  "templates": [
+    "test_template",
+    "component_template",
+    "model_template"
+  ]
+}

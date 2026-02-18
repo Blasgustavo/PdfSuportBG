@@ -1,0 +1,12 @@
+{
+  "name": "gui-developer",
+  "description": "Specialized agent for GUI development using tkinter - windows, panels, components, themes.",
+  "capabilities": [
+    "tkinter_ui",
+    "component_design",
+    "theme_management",
+    "event_handling"
+  ],
+  "domain": "gui_development",
+  "code_location": "src/gui/"
+}

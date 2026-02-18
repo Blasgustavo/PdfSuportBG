@@ -1,0 +1,9 @@
+{
+  "name": "skill-design",
+  "description": "UI/UX design - helps with component design, theming, layouts",
+  "capabilities": [
+    "color_palettes",
+    "component_layouts",
+    "theme_customization"
+  ]
+}

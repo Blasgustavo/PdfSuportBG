@@ -1,306 +1,188 @@
-# Xebec Pdf - AGENTS.md
+# AGENTS.md - Guidelines for AI Agents
+
+This document provides guidelines for AI agents working in this repository.
 
 ## Project Overview
 
-**Xebec Pdf** - Aplicación de escritorio profesional para administrar PDFs en Windows con interfaz moderna inspirada en Microsoft Office.
+**Xebec Pdf Fixer** - A Windows desktop PDF management application built with Python and tkinter.
+- **Language**: Python 3.8+
+- **GUI Framework**: tkinter (built-in)
+- **PDF Library**: pypdf>=3.0.0
+- **Image Library**: Pillow>=9.0.0
 
-- **Python**: 3.8+
-- **GUI**: Tkinter con tema personalizado
-- **PDF**: pypdf
-- **Build**: PyInstaller
-
----
-
-## Build, Lint, and Test Commands
+## Build, Test, and Run Commands
 
 ### Running the Application
-
 ```bash
-# Development mode
 python src/main.py
-
-# With debug logging
-python -c "import logging; logging.basicConfig(level=logging.DEBUG); exec(open('src/main.py').read())"
 ```
 
 ### Running Tests
-
 ```bash
-# Install test dependencies
-pip install pytest>=7.0
-
-# Run all tests
-pytest
-
-# Run all tests with verbose output
-pytest -v
-
-# Run a single test file
-pytest tests/test_pdf_repair.py
-
-# Run a single test function
-pytest tests/test_pdf_repair.py::test_repair_single_pdf -v
-
-# Run tests matching a pattern
-pytest -k "repair"
-
-# Run with coverage (if coverage is installed)
-pip install pytest-cov
-pytest --cov=src --cov-report=term-missing
+pytest tests/                    # Run all tests
+pytest tests/test_file.py        # Run specific test file
+pytest tests/test_file.py::test_function  # Run specific test function
+pytest -k "test_name"           # Run tests matching pattern
 ```
 
 ### Building Executable
-
 ```bash
-# Install PyInstaller
-pip install pyinstaller>=5.0
-
-# Build single-file executable
-pyinstaller --onefile --windowed --icon=assets/icons/icono.png --name "XebecPdf" src/main.py
-
-# Output located at: dist/XebecPdf.exe
+pyinstaller --onefile --windowed --icon=assets/icons/icono.png src/main.py
 ```
 
-### Code Quality (Linting)
-
+### Installing Dependencies
 ```bash
-# Install linting tools (recommended)
-pip install ruff mypy
-
-# Run ruff linter
-ruff check src/
-
-# Run ruff with auto-fix
-ruff check --fix src/
-
-# Run type checking
-mypy src/
-
-# Format code
-ruff format src/
+pip install -r requirements.txt
+pip install -e .                # Install in editable mode
 ```
-
----
 
 ## Code Style Guidelines
 
-### Imports
+### General Principles
+- Use **type hints** for all function parameters and return types
+- Use **pathlib.Path** instead of os.path strings
+- Use **f-strings** for string formatting
+- Use **absolute imports** (from src.package.module import ...)
 
+### Naming Conventions
+- **Classes**: PascalCase (e.g., `PDFRepairer`, `MainWindow`)
+- **Functions/methods**: snake_case (e.g., `repair_pdf`, `_setup_window`)
+- **Private methods**: prefix with underscore (e.g., `_on_close`)
+- **Constants**: UPPER_SNAKE_CASE (e.g., `APP_NAME`, `APP_VERSION`)
+- **Files**: snake_case (e.g., `pdf_repair.py`, `main_window.py`)
+
+### Import Order
+1. Standard library imports
+2. Third-party imports
+3. Local application imports
+
+Group with blank line between groups:
 ```python
-# Standard library first, then third-party, then local
-import logging
+import threading
+import tkinter as tk
+from tkinter import filedialog, messagebox
 from pathlib import Path
-from typing import Tuple, Optional, List
+from typing import Optional, Tuple
 
 from pypdf import PdfReader, PdfWriter
 
 from src.core.pdf_repair import PDFRepairer
-from src.utils.logger import get_logger
+from src.utils.logger import logger
+from src.gui.components.theme_manager import theme_manager
 ```
 
-- Use absolute imports from `src`
-- Group imports with blank lines between groups
-- Sort imports alphabetically within groups
-
 ### Type Hints
-
-- **Always use type hints** for function parameters and return types
-- Use `Optional[X]` instead of `X | None` (Python 3.8+ compatibility)
-- Use `Tuple[X, Y]` for multiple return values
-
+Use type hints for all functions:
 ```python
-# Good
 def repair(input_path: Path, output_path: Path) -> Tuple[bool, Optional[str]]:
     ...
 
-# Good
-def process_files(files: List[Path]) -> dict:
+def _on_document_select(self, file_path: str, file_name: str) -> None:
     ...
 ```
 
-### Naming Conventions
-
-| Element | Convention | Example |
-|---------|------------|---------|
-| Classes | PascalCase | `PDFRepairer`, `Component` |
-| Functions/methods | snake_case | `repair_pdf()`, `update_theme()` |
-| Variables | snake_case | `input_path`, `output_folder` |
-| Constants | UPPER_SNAKE_CASE | `MAX_PAGES = 1000` |
-| Private methods | _snake_case | `_apply_fg()`, `_create_container()` |
-| Files | snake_case | `pdf_repair.py`, `main_window.py` |
-
 ### Error Handling
-
-- Return `Tuple[bool, Optional[str]]` for operations that can fail
-- Use try/except for operations that need cleanup
-- Log errors before returning failure
-
+- Use try/except blocks with specific exception types
+- Return error information rather than raising for recoverable errors
+- Log errors appropriately:
 ```python
-# Pattern for operations that can fail
-def operation(file_path: Path) -> Tuple[bool, Optional[str]]:
-    try:
-        # risky operation
-        return True, None
-    except Exception as e:
-        logger.error(f"Operation failed: {e}")
-        return False, str(e)
+try:
+    # operation
+except Exception as e:
+    return False, str(e)
 ```
 
-### GUI Components
-
-- Inherit from `Component` base class (abc.ABC)
-- Implement `update_theme()` method for theme changes
-- Support `theme_manager` for dynamic colors
-- Use threading for long-running operations
-
+### Docstrings
+Use Google-style docstrings for public methods:
 ```python
-class MyComponent(Component):
-    def __init__(self, parent: tk.Widget, **kwargs):
-        super().__init__(parent, **kwargs)
-        self._create_widget()
-    
-    def update_theme(self):
-        # Apply theme colors
-        pass
+def repair(input_path: Path, output_path: Path) -> Tuple[bool, Optional[str]]:
+    """Repair a PDF file by reading and rewriting it.
+
+    Args:
+        input_path: Path to the input PDF file.
+        output_path: Path where the repaired PDF will be saved.
+
+    Returns:
+        Tuple of (success: bool, error_message: Optional[str])
+    """
 ```
 
-### Class Structure
+### GUI Development
+- Use tkinter Frame widgets as containers
+- Follow component-based architecture (see `src/gui/components/`)
+- Use theme_manager for colors (One Dark Pro theme)
+- Use descriptive names for UI elements (e.g., `_main_container`, `_start_panel`)
 
-```python
-class MyClass:
-    def __init__(self, param: str):
-        self.param = param
-        self._private = None
-    
-    @property
-    def value(self) -> str:
-        return self._private
-    
-    @value.setter
-    def value(self, val: str):
-        self._private = val
-    
-    @staticmethod
-    def utility_method(arg: str) -> bool:
-        ...
-    
-    def instance_method(self) -> Tuple[bool, Optional[str]]:
-        ...
+### File Organization
+```
+src/
+├── main.py              # Entry point
+├── core/                # Business logic
+│   └── pdf_repair.py
+├── gui/                 # GUI components
+│   ├── main_window.py
+│   ├── splash_screen.py
+│   └── components/     # Reusable UI components
+└── utils/               # Utilities
+    ├── logger.py
+    └── helpers.py
 ```
 
 ### Logging
-
-- Use the project's logger: `from src.utils.logger import get_logger`
-- Log at appropriate levels: DEBUG, INFO, WARNING, ERROR
-- Include context in log messages
-
+Use the project's logger utility:
 ```python
-logger = get_logger(__name__)
+from src.utils.logger import logger
 
-logger.info("Starting PDF repair")
-logger.error(f"Failed to repair {file}: {error}")
+log = logger.get_logger()
+log.info("Message")
+log.error("Error message")
 ```
 
----
+## Project Configuration
 
-## Project Structure
+### pyproject.toml Settings
+- Package name: `xebec-pdf-fixer`
+- Test path: `tests/`
+- Build: PyInstaller onefile windowed
 
+## Development Workflow
+
+1. **Before writing code**: Understand the existing component structure
+2. **Testing**: Add tests for new features in `tests/` directory
+3. **Error handling**: Always handle exceptions gracefully with user feedback
+4. **Theme**: Use `theme_manager.colors` for consistent styling
+
+## Known Limitations
+- Tests directory exists but may be empty - add tests for new features
+- No CI/CD configured yet
+- No linter/formatter configured (consider adding ruff)
+
+## Agent Structure
+
+### Orchestrator
+- **orchestrator**: Main agent that coordinates all development tasks. Delegates to specialized sub-agents.
+
+### Sub-agents
+- **pdf-engineer**: Specialized for PDF operations (repair, merge, split, extract, rotate, encrypt)
+- **gui-developer**: Specialized for tkinter GUI development (windows, panels, components, themes)
+
+## Skills
+
+| Skill | Description | Auto-invoke |
+|-------|-------------|--------------|
+| skill-commit | Conventional commits (format: `type(scope): description`) | Yes (on_code_change) |
+| skill-sinc | Project synchronization | No |
+| skill-doc | Documentation generation | No |
+| skill-generate | Code generation (tests, components) | No |
+| skill-design | UI/UX design assistance | No |
+
+### Conventional Commits Format
 ```
-PdfSuport/
-├── src/
-│   ├── main.py                    # Entry point
-│   ├── core/                      # PDF business logic
-│   │   └── pdf_repair.py
-│   ├── gui/                       # GUI components
-│   │   ├── main_window.py
-│   │   ├── splash_screen.py
-│   │   ├── components/
-│   │   │   ├── base.py           # Component base class
-│   │   │   ├── widgets.py
-│   │   │   ├── theme_manager.py
-│   │   │   └── ...
-│   │   └── themes/
-│   └── utils/
-│       ├── logger.py
-│       └── font_manager.py
-├── tests/                         # Test files
-│   └── test_*.py
-├── assets/
-│   ├── icons/
-│   └── fonts/
-├── pyproject.toml
-├── requirements.txt
-└── README.md
+<type>(<scope>): <description>
+
+Types: feat, fix, docs, style, refactor, test, chore
+Examples:
+  feat(pdf): add merge functionality
+  fix(gui): resolve theme toggle crash
+  docs: update README with new commands
 ```
-
----
-
-## Theme Colors (One Dark Pro)
-
-| Name | Hex |
-|------|-----|
-| Background | `#282A31` |
-| Foreground | `#B2C2CD` |
-| Accent | `#528BFF` |
-| Success | `#98C379` |
-| Warning | `#E5C07B` |
-| Error | `#E06C75` |
-
----
-
-## Git Commit Conventions
-
-Format: `<type>(<scope>): <description>`
-
-Types:
-- `feat` - New feature
-- `fix` - Bug fix
-- `refactor` - Code refactoring
-- `test` - Tests
-- `docs` - Documentation
-- `chore` - Maintenance
-
-Example: `feat(pdf): add PDF merge functionality`
-
----
-
-## Testing Best Practices
-
-1. Place tests in `tests/` directory
-2. Name test files: `test_<module>.py`
-3. Name test functions: `test_<description>()`
-4. Use pytest fixtures for common setup
-5. Mock external dependencies (file I/O, pypdf)
-6. Test both success and failure paths
-
-```python
-# tests/test_pdf_repair.py
-import pytest
-from pathlib import Path
-from src.core.pdf_repair import PDFRepairer
-
-def test_repair_valid_pdf(tmp_path):
-    input_file = tmp_path / "input.pdf"
-    output_file = tmp_path / "output.pdf"
-    # ... create test PDF ...
-    
-    success, error = PDFRepairer.repair(input_file, output_file)
-    
-    assert success is True
-    assert error is None
-    assert output_file.exists()
-```
-
----
-
-## Dependencies
-
-### Runtime
-- `pypdf>=3.0.0`
-- `Pillow>=9.0.0`
-
-### Development
-- `pyinstaller>=5.0` - Build executable
-- `pytest>=7.0` - Testing
-- `ruff` - Linting/formatting
-- `mypy` - Type checking

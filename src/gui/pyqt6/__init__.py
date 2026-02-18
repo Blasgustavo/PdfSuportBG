@@ -1,0 +1,1 @@
+# Xebec PDF Fixer - PyQt6 GUI Package

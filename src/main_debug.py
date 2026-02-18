@@ -1,7 +1,10 @@
 import sys
 from pathlib import Path
-
 sys.path.insert(0, str(Path(__file__).parent.parent))
+
+# Redirect stderr to file
+import io
+sys.stderr = open("error_log.txt", "w")
 
 from PyQt6.QtWidgets import QApplication
 from PyQt6.QtCore import QTimer
@@ -29,9 +32,10 @@ def main():
     def finish_splash():
         splash.finish(window)
         window.showMaximized()
-        theme_manager.emit_change()
+        theme_manager.theme_changed.emit()
     
-    QTimer.singleShot(500, finish_splash)
+    QTimer.singleShot(100, finish_splash)
+    splash.simulate_loading(lambda: None)
     
     window.close_requested.connect(app.quit)
     

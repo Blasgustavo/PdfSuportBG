@@ -1,0 +1,14 @@
+{
+  "name": "pdf-engineer",
+  "description": "Specialized agent for PDF functionality - repair, merge, split, extract pages, rotate, encrypt.",
+  "capabilities": [
+    "pdf_repair",
+    "pdf_merge",
+    "pdf_split",
+    "pdf_extract",
+    "pdf_rotate",
+    "pdf_encrypt"
+  ],
+  "domain": "pdf_operations",
+  "code_location": "src/core/"
+}
