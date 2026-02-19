@@ -72,7 +72,7 @@ class WindowManager(QObject):
                 return self._editor_window._has_unsaved_changes
         return False
     
-    def show_splash(self, duration_ms: int = 1500) -> None:
+    def show_splash(self, duration_ms: int = 2000) -> None:
         """
         Muestra la pantalla de splash.
         
@@ -100,7 +100,8 @@ class WindowManager(QObject):
             self.window_changed.emit("main")
             self.window_opened.emit("main", {})
         
-        QTimer.singleShot(duration_ms, finish_splash)
+        # Iniciar simulación de carga
+        splash.simulate_loading(finish_splash)
     
     def show_main(self, **kwargs) -> None:
         """
