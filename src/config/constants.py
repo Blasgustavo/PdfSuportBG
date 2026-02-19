@@ -1,0 +1,42 @@
+"""
+Constantes de la aplicación Xebec PDF Fixer.
+"""
+
+# Aplicación
+APP_NAME = "Xebec PDF Fixer"
+APP_VERSION = "1.0.0"
+APP_AUTHOR = "XEBEC CORPORATION"
+APP_COMPANY = "Corporación Xebec"
+APP_WEBSITE = "https://xebec.corp"
+APP_SUPPORT_EMAIL = "support@xebec.corp"
+
+# Rutas
+DEFAULT_LOG_DIR = "logs"
+DEFAULT_ASSETS_DIR = "assets"
+DEFAULT_ICONS_DIR = "assets/icons"
+DEFAULT_IMAGES_DIR = "assets/images"
+
+# Archivos
+PDF_EXTENSION = ".pdf"
+LOG_EXTENSION = ".log"
+
+# Tiempos (ms)
+SPLASH_DURATION_MS = 2000
+ANIMATION_DURATION_MS = 300
+TRANSITION_DURATION_MS = 400
+
+# Tamaños de ventana
+WINDOW_MIN_WIDTH = 900
+WINDOW_MIN_HEIGHT = 600
+WINDOW_DEFAULT_WIDTH = 1280
+WINDOW_DEFAULT_HEIGHT = 720
+
+# UI
+SIDEBAR_WIDTH = 220
+TITLE_BAR_HEIGHT = 40
+FOOTER_HEIGHT = 32
+
+# Límites
+MAX_RECENT_FILES = 10
+MAX_FILE_SIZE_MB = 500
+MAX_PAGES_PREVIEW = 100
