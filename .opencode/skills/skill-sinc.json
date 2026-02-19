@@ -1,9 +1,0 @@
-{
-  "name": "skill-sinc",
-  "description": "Project synchronization - keeps files in sync, manages dependencies",
-  "capabilities": [
-    "sync_files",
-    "check_dependencies",
-    "verify_structure"
-  ]
-}

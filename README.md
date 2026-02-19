@@ -132,10 +132,12 @@ El proyecto está configurado para usar OpenCode con:
 - `gui-developer`: Interfaz gráfica
 
 ### Skills
+Para usar una skill, usa el tool `skill(name: "skill-nombre")`:
+
+- `skill-commit`: Convenciones de commits
 - `skill-sinc`: Sincronización del proyecto
 - `skill-doc`: Documentación
 - `skill-generate`: Generación de código
-- `skill-commit`: Convenciones de commits
 - `skill-design`: Diseño UI/UX
 
 ---
