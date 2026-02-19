@@ -202,7 +202,8 @@ class AnimatedSplash(QSplashScreen):
         bg_color = QColor(0, 0, 0, 80)
         painter.setPen(Qt.PenStyle.NoPen)
         painter.setBrush(QBrush(bg_color))
-        painter.drawRoundedRect(bar_x, bar_y, bar_width, bar_height, 3, 3)
+        rect = QRectF(bar_x, bar_y, bar_width, bar_height)
+        painter.drawRoundedRect(rect, 3, 3)
         
         # Progreso con gradiente
         if self._progress > 0:
@@ -213,7 +214,8 @@ class AnimatedSplash(QSplashScreen):
             progress_gradient.setColorAt(1, QColor("#F6AD55"))
             
             painter.setBrush(QBrush(progress_gradient))
-            painter.drawRoundedRect(bar_x, bar_y, fill_width, bar_height, 3, 3)
+            fill_rect = QRectF(bar_x, bar_y, fill_width, bar_height)
+            painter.drawRoundedRect(fill_rect, 3, 3)
     
     def _draw_loading_text(self, painter: QPainter):
         """Dibuja el texto de carga."""
