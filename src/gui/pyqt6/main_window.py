@@ -24,8 +24,8 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.log = logger.get_logger()
         self._setup_window()
-        self._apply_theme()  # Aplicar tema inmediatamente
-        self._setup_ui()
+        self._setup_ui()  # Crear componentes primero
+        self._apply_theme()  # Luego aplicar tema
         self.hide()  # Ocultar hasta que splash termine
         
         theme_manager.theme_changed.connect(self._apply_theme)
