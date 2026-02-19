@@ -61,7 +61,6 @@ class SidebarButton(QPushButton):
                 padding-left: 20px;
                 font-size: 13px;
                 border-radius: 0px;
-                transition: all 0.2s ease;
             }}
             QPushButton:hover {{
                 background-color: {colors['bg_tertiary']};
@@ -167,7 +166,6 @@ class Sidebar(QFrame):
                 background-color: transparent;
                 border: none;
                 border-radius: 12px;
-                transition: all 0.2s ease;
             }}
             QPushButton#navButton:hover {{
                 background-color: {colors['bg_tertiary']};
@@ -177,10 +175,6 @@ class Sidebar(QFrame):
             }}
             QLabel#navIcon {{
                 font-size: 40px;
-                transition: transform 0.2s ease;
-            }}
-            QPushButton#navButton:hover QLabel#navIcon {{
-                transform: scale(1.1);
             }}
             QLabel#navText {{
                 color: {colors['fg_primary']};
@@ -466,17 +460,14 @@ class StartPanel(QWidget):
                 border: 1px solid {colors['border']};
                 border-radius: 12px;
                 font-size: 13px;
-                transition: all 0.2s ease;
             }}
             QPushButton:hover {{
                 background-color: {colors['accent']};
                 color: white;
                 border-color: {colors['accent']};
-                transform: translateY(-2px);
             }}
             QPushButton:pressed {{
                 background-color: {colors['accent_dark']};
-                transform: translateY(0px);
             }}
         """)
         
@@ -507,11 +498,9 @@ class StartPanel(QWidget):
                 background-color: {colors['bg_secondary']};
                 border: 1px solid {colors['border']};
                 border-radius: 12px;
-                transition: all 0.2s ease;
             }}
             QWidget#docCard:hover {{
                 border-color: {colors['accent']};
-                transform: translateY(-3px);
             }}
             QLabel#previewIcon {{
                 font-size: 48px;
@@ -617,17 +606,15 @@ class NewPanel(QWidget):
                 border-radius: 16px;
                 font-size: 14px;
                 font-weight: bold;
-                transition: all 0.25s ease;
             }}
             QPushButton:hover {{
                 background-color: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 {colors['accent']}, stop:1 {colors['accent_light']});
                 color: white;
                 border-color: {colors['accent']};
-                transform: scale(1.03);
             }}
             QPushButton:pressed {{
                 background-color: {colors['accent_dark']};
-                transform: scale(0.98);
+            }}
             }}
         """)
         
@@ -776,7 +763,6 @@ class RepairPanel(QWidget):
                 background-color: {colors['bg_tertiary']};
                 border: 2px dashed {colors['border']};
                 border-radius: 16px;
-                transition: all 0.2s ease;
             }}
             QFrame#dropArea:hover {{
                 border-color: {colors['accent']};
@@ -802,15 +788,12 @@ class RepairPanel(QWidget):
                 font-size: 14px;
                 font-weight: 600;
                 padding: 10px 20px;
-                transition: all 0.2s ease;
             }}
             QPushButton:hover {{
                 background-color: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 {colors['accent_light']}, stop:1 {colors['accent']});
-                transform: translateY(-2px);
             }}
             QPushButton:pressed {{
                 background-color: {colors['accent_dark']};
-                transform: translateY(0px);
             }}
             QPushButton:disabled {{
                 background-color: {colors['bg_tertiary']};
@@ -899,15 +882,12 @@ class MergePanel(QWidget):
                 font-size: 14px;
                 font-weight: 600;
                 padding: 10px 20px;
-                transition: all 0.2s ease;
             }}
             QPushButton:hover {{
                 background-color: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 {colors['accent_light']}, stop:1 {colors['accent']});
-                transform: translateY(-2px);
             }}
             QPushButton:pressed {{
                 background-color: {colors['accent_dark']};
-                transform: translateY(0px);
             }}
             QPushButton:disabled {{
                 background-color: {colors['bg_tertiary']};
@@ -1010,15 +990,12 @@ class SplitPanel(QWidget):
                 font-size: 14px;
                 font-weight: 600;
                 padding: 10px 20px;
-                transition: all 0.2s ease;
             }}
             QPushButton:hover {{
                 background-color: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 {colors['accent_light']}, stop:1 {colors['accent']});
-                transform: translateY(-2px);
             }}
             QPushButton:pressed {{
                 background-color: {colors['accent_dark']};
-                transform: translateY(0px);
             }}
             QPushButton:disabled {{
                 background-color: {colors['bg_tertiary']};

@@ -1,7 +1,7 @@
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, 
     QFrame, QFileDialog, QScrollArea, QSplitter, QSizePolicy,
-    QToolBar, QToolButton, QStatusBar
+    QToolBar, QToolButton, QStatusBar, QDialog
 )
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QAction
@@ -19,11 +19,28 @@ class EditorWindow(QFrame):
         super().__init__(parent)
         self.document_type = document_type
         self.current_file_path = None
+        self._has_unsaved_changes = False
         self._setup_ui()
         
         theme_manager.theme_changed.connect(self._apply_style)
         
         self._load_document()
+    
+    def mark_as_modified(self):
+        self._has_unsaved_changes = True
+        self._update_window_title()
+    
+    def mark_as_saved(self):
+        self._has_unsaved_changes = False
+        self._update_window_title()
+    
+    def _update_window_title(self):
+        if hasattr(self, 'file_name_label'):
+            title = self.file_name_label.text()
+            if self._has_unsaved_changes and not title.startswith("*"):
+                self.file_name_label.setText(f"*{title}")
+            elif not self._has_unsaved_changes and title.startswith("*"):
+                self.file_name_label.setText(title[1:])
     
     def _load_document(self):
         if self.document_type == "blank":
@@ -289,6 +306,7 @@ class EditorWindow(QFrame):
         self.file_name_label.setText(file_name)
         self.info_label.setText(f"Archivo cargado: {file_name}")
         self.status_label.setText("Archivo abierto correctamente")
+        self.mark_as_saved()
         self.file_opened.emit(file_path)
     
     def _go_home(self):
@@ -299,6 +317,7 @@ class EditorWindow(QFrame):
         self.info_label.setText("Nuevo documento en blanco creado")
         self.status_label.setText("Listo para editar")
         self.current_file_path = None
+        self.mark_as_modified()
     
     def _save_pdf(self):
         self.status_label.setText("Guardando...")
@@ -403,7 +422,7 @@ class EditorWindow(QFrame):
         """)
 
 
-class EditorWindowContainer(QWidget):
+class EditorWindowContainer(QDialog):
     close_requested = pyqtSignal()
     
     def __init__(self, document_type: str = "blank", parent: Optional[QWidget] = None):
@@ -412,6 +431,9 @@ class EditorWindowContainer(QWidget):
         self._setup_ui()
         
         theme_manager.theme_changed.connect(self._apply_theme)
+        
+        if self.editor:
+            self.editor.close_requested.connect(self._on_editor_close_requested)
     
     def _setup_ui(self):
         layout = QVBoxLayout(self)
@@ -453,19 +475,35 @@ class EditorWindowContainer(QWidget):
         
         layout.addWidget(title_bar)
         
-        self.editor = EditorWindow(document_type=self.document_type)
+        self.editor = EditorWindow(document_type=self.document_type, parent=self)
         layout.addWidget(self.editor, 1)
         
         self._center_window()
-        self.show()
     
     def _on_editor_close_requested(self):
-        self.close()
-        self.close_requested.emit()
+        self._confirm_close()
     
     def _on_close_clicked(self):
-        self.close()
-        self.close_requested.emit()
+        self._confirm_close()
+    
+    def _confirm_close(self):
+        from PyQt6.QtWidgets import QMessageBox
+        
+        if self.editor and self.editor._has_unsaved_changes:
+            reply = QMessageBox.question(
+                self,
+                "Cambios sin guardar",
+                "¿Desea cerrar sin guardar los cambios?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No
+            )
+            
+            if reply == QMessageBox.StandardButton.Yes:
+                self.close()
+                self.close_requested.emit()
+        else:
+            self.close()
+            self.close_requested.emit()
     
     def _center_window(self):
         screen = self.screen()
@@ -500,6 +538,27 @@ class EditorWindowContainer(QWidget):
     def mouseReleaseEvent(self, event):
         if hasattr(self, '_drag_position'):
             self._drag_position = None
+    
+    def closeEvent(self, event):
+        from PyQt6.QtWidgets import QMessageBox
+        
+        if self.editor and self.editor._has_unsaved_changes:
+            reply = QMessageBox.question(
+                self,
+                "Cambios sin guardar",
+                "¿Desea cerrar sin guardar los cambios?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No
+            )
+            
+            if reply == QMessageBox.StandardButton.Yes:
+                event.accept()
+                self.close_requested.emit()
+            else:
+                event.ignore()
+        else:
+            event.accept()
+            self.close_requested.emit()
     
     def _apply_theme(self):
         colors = theme_manager.colors

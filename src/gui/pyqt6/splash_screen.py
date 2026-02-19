@@ -1,9 +1,10 @@
 from PyQt6.QtWidgets import QApplication, QSplashScreen, QProgressBar, QLabel, QVBoxLayout, QWidget
-from PyQt6.QtCore import Qt, QTimer, QPropertyAnimation, QEasingCurve
-from PyQt6.QtGui import QPixmap, QPainter, QColor, QFont, QLinearGradient, QPainterPath, QBrush
+from PyQt6.QtCore import Qt, QTimer, QPropertyAnimation, QEasingCurve, QRectF
+from PyQt6.QtGui import QPixmap, QPainter, QColor, QFont, QLinearGradient, QPainterPath, QBrush, QPen
 from pathlib import Path
 import time
 import math
+import random
 
 
 class AnimatedSplash(QSplashScreen):
@@ -12,15 +13,14 @@ class AnimatedSplash(QSplashScreen):
     def __init__(self):
         self.logo_path = self._get_logo_path()
         
-        # Tamaño del splash
         self._width = 700
         self._height = 500
         
-        # Estado de animación
         self._opacity = 0.0
         self._progress = 0
         self._loading_text = "Inicializando..."
         self._pulse = 0
+        self._star_positions = self._generate_star_positions()
         
         pixmap = QPixmap(self._width, self._height)
         super().__init__(pixmap)
@@ -28,12 +28,24 @@ class AnimatedSplash(QSplashScreen):
         self.setWindowFlag(Qt.WindowType.FramelessWindowHint)
         self.setEnabled(False)
         
-        # Timer para animación de pulso
         self._animation_timer = QTimer()
         self._animation_timer.timeout.connect(self._animate)
-        self._animation_timer.start(50)  # 20fps
+        self._animation_timer.start(50)
         
         self._draw_content(pixmap)
+    
+    def _generate_star_positions(self):
+        """Genera posiciones fijas para las estrellas."""
+        random.seed(42)
+        stars = []
+        for _ in range(50):
+            stars.append({
+                'x': random.randint(0, self._width),
+                'y': random.randint(0, self._height),
+                'size': random.uniform(0.5, 1.5),
+                'alpha': random.randint(20, 60)
+            })
+        return stars
     
     def _get_logo_path(self):
         possible_paths = [
@@ -64,11 +76,10 @@ class AnimatedSplash(QSplashScreen):
         
         # Fondo con gradiente diagonal XEBEC
         gradient = QLinearGradient(0, 0, self._width, self._height)
-        gradient.setColorAt(0, QColor("#1E3A5F"))  # Primary XEBEC
-        gradient.setColorAt(0.5, QColor("#0E2A4F"))  # Primary dark
-        gradient.setColorAt(1, QColor("#1A202C"))  # Dark bg
+        gradient.setColorAt(0, QColor("#1E3A5F"))
+        gradient.setColorAt(0.5, QColor("#0E2A4F"))
+        gradient.setColorAt(1, QColor("#1A202C"))
         
-        # Fondo principal
         painter.fillRect(pixmap.rect(), gradient)
         
         # Efecto de partículas/estrellas sutiles
@@ -103,22 +114,11 @@ class AnimatedSplash(QSplashScreen):
         """Dibuja estrellas de fondo."""
         painter.save()
         
-        # Usar una semilla fija para que las estrellas no parpadeen
-        import random
-        random.seed(42)
-        
-        for _ in range(50):
-            x = random.randint(0, self._width)
-            y = random.randint(0, self._height)
-            size = random.uniform(0.5, 1.5)
-            
-            # Color con transparencia
-            alpha = random.randint(20, 60)
-            color = QColor(255, 255, 255, alpha)
-            
+        for star in self._star_positions:
+            color = QColor(255, 255, 255, star['alpha'])
             painter.setPen(Qt.PenStyle.NoPen)
             painter.setBrush(QBrush(color))
-            painter.drawEllipse(x, y, size, size)
+            painter.drawEllipse(star['x'], star['y'], int(star['size']), int(star['size']))
         
         painter.restore()
     
@@ -127,7 +127,6 @@ class AnimatedSplash(QSplashScreen):
         if self.logo_path and self.logo_path.exists():
             logo = QPixmap(str(self.logo_path))
             if not logo.isNull():
-                # Efecto de escala con pulso
                 pulse_scale = 1.0 + math.sin(self._pulse) * 0.02
                 size = int(80 * pulse_scale)
                 
@@ -140,11 +139,12 @@ class AnimatedSplash(QSplashScreen):
                 x = (self._width - scaled_logo.width()) // 2
                 y = 80
                 
-                # Glow effect (círculos concéntricos difusos)
+                # Glow effect
                 for i in range(3):
                     glow_size = size + (i + 1) * 20
                     glow_alpha = 30 - i * 10
-                    glow_color = QColor("#F6993F", glow_alpha)  # Accent color
+                    glow_color = QColor("#F6993F")
+                    glow_color.setAlpha(glow_alpha)
                     painter.setPen(Qt.PenStyle.NoPen)
                     painter.setBrush(QBrush(glow_color))
                     center_x = self._width // 2 - glow_size // 2 + 10
@@ -155,11 +155,12 @@ class AnimatedSplash(QSplashScreen):
             # Logo de texto si no hay imagen
             pulse_scale = 1.0 + math.sin(self._pulse) * 0.05
             
-            # Glow
-            glow_color = QColor("#F6993F", 50)
+            glow_color = QColor("#F6993F")
+            glow_color.setAlpha(50)
             painter.setPen(glow_color)
             painter.setFont(QFont("Segoe UI", int(48 * pulse_scale), QFont.Weight.Bold))
-            painter.drawText(self._width // 2, 130, Qt.AlignmentFlag.AlignCenter, "X")
+            rect = QRectF(0, 100, self._width, 60)
+            painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, "X")
     
     def _draw_title(self, painter: QPainter):
         """Dibuja el título corporativo."""
@@ -167,24 +168,28 @@ class AnimatedSplash(QSplashScreen):
         shadow_color = QColor(0, 0, 0, 100)
         painter.setPen(shadow_color)
         painter.setFont(QFont("Segoe UI", 36, QFont.Weight.Bold))
-        painter.drawText(self._width // 2 + 2, 192, Qt.AlignmentFlag.AlignCenter, "XEBEC")
+        rect = QRectF(0, 155, self._width, 45)
+        painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, "XEBEC")
         
         # Texto principal
         painter.setPen(QColor("#FFFFFF"))
         painter.setFont(QFont("Segoe UI", 36, QFont.Weight.Bold))
-        painter.drawText(self._width // 2, 190, Qt.AlignmentFlag.AlignCenter, "XEBEC")
+        rect = QRectF(0, 153, self._width, 45)
+        painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, "XEBEC")
         
         # PDF Fixer en accent
         accent_color = QColor("#F6993F")
         painter.setPen(accent_color)
         painter.setFont(QFont("Segoe UI", 22, QFont.Weight.Normal))
-        painter.drawText(self._width // 2, 220, Qt.AlignmentFlag.AlignCenter, "PDF Fixer")
+        rect = QRectF(0, 198, self._width, 30)
+        painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, "PDF Fixer")
     
     def _draw_subtitle(self, painter: QPainter):
         """Dibuja el subtítulo."""
         painter.setPen(QColor("#A0AEC0"))
         painter.setFont(QFont("Segoe UI", 11))
-        painter.drawText(self._width // 2, 245, Qt.AlignmentFlag.AlignCenter, "Corporación Xebec")
+        rect = QRectF(0, 230, self._width, 20)
+        painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, "Corporación Xebec")
     
     def _draw_progress_bar(self, painter: QPainter):
         """Dibuja la barra de progreso."""
@@ -193,7 +198,7 @@ class AnimatedSplash(QSplashScreen):
         bar_x = (self._width - bar_width) // 2
         bar_y = 310
         
-        # Fondo de la barra (oscuro)
+        # Fondo de la barra
         bg_color = QColor(0, 0, 0, 80)
         painter.setPen(Qt.PenStyle.NoPen)
         painter.setBrush(QBrush(bg_color))
@@ -204,15 +209,14 @@ class AnimatedSplash(QSplashScreen):
             fill_width = int((self._progress / 100) * bar_width)
             
             progress_gradient = QLinearGradient(bar_x, 0, bar_x + bar_width, 0)
-            progress_gradient.setColorAt(0, QColor("#F6993F"))  # Accent
-            progress_gradient.setColorAt(1, QColor("#F6AD55"))  # Accent light
+            progress_gradient.setColorAt(0, QColor("#F6993F"))
+            progress_gradient.setColorAt(1, QColor("#F6AD55"))
             
             painter.setBrush(QBrush(progress_gradient))
             painter.drawRoundedRect(bar_x, bar_y, fill_width, bar_height, 3, 3)
     
     def _draw_loading_text(self, painter: QPainter):
         """Dibuja el texto de carga."""
-        # Efecto de parpadeo sutil
         alpha = 180 + int(math.sin(self._pulse * 2) * 50)
         text_color = QColor("#F6993F")
         text_color.setAlpha(alpha)
@@ -220,28 +224,28 @@ class AnimatedSplash(QSplashScreen):
         painter.setPen(text_color)
         painter.setFont(QFont("Segoe UI", 10))
         
-        # Indicador de carga animado
         dots = "." * (int(self._pulse * 3) % 4)
         text = f"{self._loading_text}{dots}"
         
-        painter.drawText(self._width // 2, 340, Qt.AlignmentFlag.AlignCenter, text)
+        rect = QRectF(0, 325, self._width, 20)
+        painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, text)
     
     def _draw_version(self, painter: QPainter):
         """Dibuja la versión."""
         painter.setPen(QColor("#4A5568"))
         painter.setFont(QFont("Segoe UI", 9))
-        painter.drawText(self._width // 2, 420, Qt.AlignmentFlag.AlignCenter, "Autor: XEBEC CORPORATION  |  Versión: 1.0.0")
+        rect = QRectF(0, 405, self._width, 20)
+        painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, "Autor: XEBEC CORPORATION  |  Versión: 1.0.0")
     
     def _draw_branding(self, painter: QPainter):
         """Dibuja marca de agua corporativa."""
         painter.setPen(QColor(255, 255, 255, 10))
         painter.setFont(QFont("Segoe UI", 60, QFont.Weight.Bold))
         
-        # Texto diagonal de fondo
         painter.save()
         painter.translate(self._width // 2, self._height // 2)
         painter.rotate(-30)
-        painter.drawText(0, 0, Qt.AlignmentFlag.AlignCenter, "XEBEC")
+        painter.drawText(QRectF(-200, -40, 400, 80), Qt.AlignmentFlag.AlignCenter, "XEBEC")
         painter.restore()
 
     def update_progress(self, value: int, status: str = ""):

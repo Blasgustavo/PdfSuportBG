@@ -211,7 +211,6 @@ class MainWindow(QMainWindow):
                 color: {colors['fg_secondary']};
                 border: none;
                 font-size: 14px;
-                transition: all 0.15s ease;
             }}
             QPushButton#titleButton:hover {{
                 background-color: rgba(255, 255, 255, 0.1);
@@ -222,7 +221,6 @@ class MainWindow(QMainWindow):
                 color: {colors['fg_secondary']};
                 border: none;
                 font-size: 14px;
-                transition: all 0.15s ease;
             }}
             QPushButton#closeButton:hover {{
                 background-color: {colors['error']};
@@ -244,15 +242,12 @@ class MainWindow(QMainWindow):
                 font-size: 14px;
                 font-weight: 600;
                 padding: 10px 20px;
-                transition: all 0.2s ease;
             }}
             QPushButton:hover {{
                 background-color: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 {colors['accent_light']}, stop:1 {colors['accent']});
-                transform: translateY(-1px);
             }}
             QPushButton:pressed {{
                 background-color: {colors['accent_dark']};
-                transform: translateY(0px);
             }}
             QPushButton:disabled {{
                 background-color: {colors['bg_tertiary']};

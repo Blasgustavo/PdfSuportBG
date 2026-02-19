@@ -4,10 +4,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from PyQt6.QtWidgets import QApplication
-from PyQt6.QtCore import QTimer
-from src.gui.pyqt6.main_window import MainWindow
-from src.gui.pyqt6.splash_screen import SplashScreen
-from src.gui.pyqt6.theme_manager import theme_manager
+from src.gui.pyqt6.window_manager import window_manager
 from src.utils.logger import logger
 
 
@@ -21,19 +18,8 @@ def main():
     app.setApplicationName("Xebec Pdf")
     app.setOrganizationName("Corporación Xebec")
     
-    window = MainWindow()
-    
-    splash = SplashScreen()
-    splash.show()
-    
-    def finish_splash():
-        splash.finish(window)
-        window.showMaximized()
-        theme_manager.emit_change()
-    
-    QTimer.singleShot(500, finish_splash)
-    
-    window.close_requested.connect(app.quit)
+    window_manager.set_app(app)
+    window_manager.show_splash(duration_ms=1500)
     
     sys.exit(app.exec())
 
