@@ -170,6 +170,18 @@ class ThemeManager:
     @property
     def colors(self) -> Dict[str, str]:
         return self.theme
+    
+    def toggle_theme(self) -> str:
+        """Alterna entre tema oscuro y claro."""
+        self._current_theme = "light" if self._current_theme == "dark" else "dark"
+        self.emit_change()
+        return self._current_theme
+    
+    def set_theme(self, theme_name: str) -> None:
+        """Establece un tema específico."""
+        if theme_name in ("dark", "light"):
+            self._current_theme = theme_name
+            self.emit_change()
 
     @property
     def font_family(self) -> str:
