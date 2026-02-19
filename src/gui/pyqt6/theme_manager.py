@@ -2,50 +2,91 @@ from typing import Dict, Any, Callable
 import sys
 
 
+# XEBEC CORPORATION - Paleta de colores corporativa
 DARK_THEME = {
-    "name": "One Dark Pro",
-    "bg_primary": "#282A31",
-    "bg_secondary": "#16181F",
-    "bg_tertiary": "#2D333B",
+    "name": "XEBEC Dark",
+    # Primary - Azul corporativo XEBEC
+    "primary": "#1E3A5F",
+    "primary_light": "#2E5A8F",
+    "primary_dark": "#0E2A4F",
+    # Backgrounds
+    "bg_primary": "#1A202C",
+    "bg_secondary": "#2D3748",
+    "bg_tertiary": "#4A5568",
     "bg_current_line": "#2D333B",
-    "fg_primary": "#B2C2CD",
-    "fg_secondary": "#8E9BAB",
+    # Text
+    "fg_primary": "#F7FAFC",
+    "fg_secondary": "#E2E8F0",
+    "fg_tertiary": "#A0AEC0",
     "fg_disabled": "#5C6370",
-    "accent": "#528BFF",
-    "accent_hover": "#6FA3FF",
-    "border": "#3E4451",
-    "comment": "#5C6370",
-    "error": "#E06C75",
-    "success": "#98C379",
-    "warning": "#E5C07B",
-    "info": "#61AFEF",
+    # Accent - Naranja XEBEC
+    "accent": "#F6993F",
+    "accent_light": "#F6AD55",
+    "accent_dark": "#DD6B20",
+    "accent_hover": "#F6AD55",
+    # Borders
+    "border": "#4A5568",
+    "border_light": "#718096",
+    # Estados
+    "success": "#38A169",
+    "warning": "#D69E2E",
+    "error": "#E53E3E",
+    "info": "#3182CE",
+    # Extra
     "purple": "#C678DD",
     "cyan": "#56B6C2",
     "close_btn": "#C0392B",
     "min_btn": "#7F8C8D",
+    # Gradientes (para texturizado)
+    "gradient_start": "#1E3A5F",
+    "gradient_end": "#0E2A4F",
+    # Metallic effects
+    "metallic_light": "#E2E8F0",
+    "metallic_mid": "#A0AEC0",
+    "metallic_dark": "#718096",
 }
 
 LIGHT_THEME = {
-    "name": "Atom One Light",
-    "bg_primary": "#FAFAFA",
-    "bg_secondary": "#F5F5F5",
-    "bg_tertiary": "#EFEFEF",
+    "name": "XEBEC Light",
+    # Primary - Azul corporativo XEBEC
+    "primary": "#1E3A5F",
+    "primary_light": "#2E5A8F",
+    "primary_dark": "#0E2A4F",
+    # Backgrounds
+    "bg_primary": "#FFFFFF",
+    "bg_secondary": "#F7FAFC",
+    "bg_tertiary": "#EDF2F7",
     "bg_current_line": "#EFEFEF",
-    "fg_primary": "#383A42",
-    "fg_secondary": "#9DA5B4",
+    # Text
+    "fg_primary": "#1A202C",
+    "fg_secondary": "#4A5568",
+    "fg_tertiary": "#718096",
     "fg_disabled": "#A0A1A7",
-    "accent": "#526FFF",
-    "accent_hover": "#6B80FF",
-    "border": "#E5E5E6",
-    "comment": "#A0A1A7",
-    "error": "#E45649",
-    "success": "#50A14F",
-    "warning": "#986801",
-    "info": "#526FFF",
+    # Accent - Naranja XEBEC
+    "accent": "#F6993F",
+    "accent_light": "#F6AD55",
+    "accent_dark": "#DD6B20",
+    "accent_hover": "#ED8936",
+    # Borders
+    "border": "#E2E8F0",
+    "border_light": "#CBD5E0",
+    # Estados
+    "success": "#38A169",
+    "warning": "#D69E2E",
+    "error": "#E53E3E",
+    "info": "#3182CE",
+    # Extra
     "purple": "#A626A4",
     "cyan": "#0897B3",
     "close_btn": "#E45649",
     "min_btn": "#A0A1A7",
+    # Gradientes
+    "gradient_start": "#F7FAFC",
+    "gradient_end": "#EDF2F7",
+    # Metallic
+    "metallic_light": "#F7FAFC",
+    "metallic_mid": "#E2E8F0",
+    "metallic_dark": "#A0AEC0",
 }
 
 

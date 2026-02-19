@@ -8,12 +8,13 @@ from PyQt6.QtGui import QAction, QMouseEvent
 from typing import Optional
 
 from src.gui.pyqt6.theme_manager import theme_manager
+from src.gui.pyqt6.window_manager import window_manager
 from src.gui.pyqt6.components import Sidebar, StartPanel, NewDocumentPanel, RepairPanel, MergePanel, SplitPanel, SettingsPanel
 from src.utils.logger import logger
 
 
-APP_NAME = "Xebec Pdf"
-APP_VERSION = "0.0.1"
+APP_NAME = "Xebec PDF Fixer"
+APP_VERSION = "1.0.0"
 
 
 class MainWindow(QMainWindow):
@@ -29,26 +30,13 @@ class MainWindow(QMainWindow):
         theme_manager.theme_changed.connect(self._apply_theme)
         
         self._drag_position = None
-        self._intentionally_hidden = False
-        
-        # Conexión directa del botón nuevo para asegurar que funcione
-        self.sidebar.new_btn.clicked.connect(self._open_editor_window)
-
-    def hide(self):
-        self._intentionally_hidden = True
-        super().hide()
-
-    def show(self):
-        self._intentionally_hidden = False
-        super().show()
 
     def closeEvent(self, event):
-        if self._intentionally_hidden:
+        if window_manager.has_editor_open:
             event.ignore()
             return
         self.close_requested.emit()
-        event.ignore()
-        self.hide()
+        event.accept()
 
     def _setup_window(self):
         self.setWindowTitle(APP_NAME)
@@ -86,32 +74,11 @@ class MainWindow(QMainWindow):
         self.sidebar.open_editor.connect(self._open_editor_window)
     
     def _open_editor_window(self, document_type: str = "blank"):
-        from PyQt6.QtWidgets import QMessageBox
-        
-        try:
-            from src.gui.pyqt6.editor_window import EditorWindowContainer
-            
-            editor_window = EditorWindowContainer(document_type=document_type)
-            editor_window.setWindowTitle("Editor de PDF - Xebec")
-            editor_window.show()
-            self.hide()
-            
-        except Exception as e:
-            import sys
-            print(f"Error al abrir editor: {e}", file=sys.stderr)
-            import traceback
-            traceback.print_exc(file=sys.stderr)
-            QMessageBox.warning(self, "Error", f"No se pudo abrir el editor: {e}")
-            self.show()
-            import sys
-            print(f"Error al abrir editor: {e}", file=sys.stderr)
-            import traceback
-            traceback.print_exc(file=sys.stderr)
-            QMessageBox.warning(self, "Error", f"No se pudo abrir el editor: {e}")
-            self.show()
+        window_manager.push_window("main")
+        window_manager.show_editor(document_type=document_type)
     
     def _on_editor_closed(self):
-        self.showMaximized()
+        window_manager.close_editor()
 
     def _create_title_bar(self):
         title_bar = QFrame()
@@ -232,7 +199,7 @@ class MainWindow(QMainWindow):
                 background-color: {colors['bg_primary']};
             }}
             QFrame#titleBar {{
-                background-color: {colors['bg_secondary']};
+                background-color: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 {colors['primary']}, stop:1 {colors['primary_light']});
             }}
             QLabel#titleLabel {{
                 color: {colors['fg_primary']};
@@ -244,15 +211,18 @@ class MainWindow(QMainWindow):
                 color: {colors['fg_secondary']};
                 border: none;
                 font-size: 14px;
+                transition: all 0.15s ease;
             }}
             QPushButton#titleButton:hover {{
-                background-color: {colors['bg_tertiary']};
+                background-color: rgba(255, 255, 255, 0.1);
+                color: white;
             }}
             QPushButton#closeButton {{
                 background-color: transparent;
                 color: {colors['fg_secondary']};
                 border: none;
                 font-size: 14px;
+                transition: all 0.15s ease;
             }}
             QPushButton#closeButton:hover {{
                 background-color: {colors['error']};
@@ -267,15 +237,22 @@ class MainWindow(QMainWindow):
                 font-weight: bold;
             }}
             QPushButton {{
-                background-color: {colors['accent']};
+                background-color: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 {colors['accent']}, stop:1 {colors['accent_light']});
                 color: white;
                 border: none;
-                border-radius: 6px;
+                border-radius: 8px;
                 font-size: 14px;
-                padding: 8px 16px;
+                font-weight: 600;
+                padding: 10px 20px;
+                transition: all 0.2s ease;
             }}
             QPushButton:hover {{
-                background-color: {colors['accent_hover']};
+                background-color: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 {colors['accent_light']}, stop:1 {colors['accent']});
+                transform: translateY(-1px);
+            }}
+            QPushButton:pressed {{
+                background-color: {colors['accent_dark']};
+                transform: translateY(0px);
             }}
             QPushButton:disabled {{
                 background-color: {colors['bg_tertiary']};
@@ -293,9 +270,10 @@ class MainWindow(QMainWindow):
                 background-color: {colors['bg_secondary']};
                 color: {colors['fg_primary']};
                 border: 1px solid {colors['border']};
+                border-radius: 4px;
             }}
             QMenu::item:selected {{
-                background-color: {colors['bg_tertiary']};
+                background-color: {colors['accent']};
             }}
         """)
         
