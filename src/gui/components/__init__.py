@@ -3,9 +3,10 @@ GUI Components - Módulo de componentes de interfaz gráfica.
 Contiene paneles, widgets y botones reutilizables.
 """
 
-# Importar desde panels (que tiene la implementación temporal)
+# Panels - importar desde panels
 from .panels import (
     Sidebar,
+    SidebarButton,
     RecentDocumentsWidget,
     StartPanel,
     NewPanel,
@@ -16,7 +17,7 @@ from .panels import (
     NewDocumentPanel,
 )
 
-# DocumentCard es el mismo que RecentDocumentsWidget por ahora
+# Alias para compatibilidad
 DocumentCard = RecentDocumentsWidget
 
 # Buttons (temporal - usar QPushButton estándar)
@@ -26,6 +27,7 @@ IconButton = None
 __all__ = [
     # Panels
     'Sidebar',
+    'SidebarButton',
     'RecentDocumentsWidget',
     'StartPanel',
     'NewPanel',
@@ -34,7 +36,7 @@ __all__ = [
     'SplitPanel',
     'SettingsPanel',
     'NewDocumentPanel',
-    # Widgets
+    # Alias
     'DocumentCard',
     # Buttons
     'BaseButton',
