@@ -26,6 +26,7 @@ class MainWindow(QMainWindow):
         self._setup_window()
         self._apply_theme()  # Aplicar tema inmediatamente
         self._setup_ui()
+        self.hide()  # Ocultar hasta que splash termine
         
         theme_manager.theme_changed.connect(self._apply_theme)
         
@@ -42,7 +43,6 @@ class MainWindow(QMainWindow):
         self.setWindowTitle(APP_NAME)
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint)
         self.setMinimumSize(900, 600)
-        self.showMaximized()
 
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:

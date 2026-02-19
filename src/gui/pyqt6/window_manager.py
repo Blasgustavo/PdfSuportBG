@@ -90,9 +90,8 @@ class WindowManager(QObject):
         if self._app:
             self._app.processEvents()
         
-        # Crear la ventana principal en background (oculta)
+        # Crear la ventana principal en background (ya se oculta sola)
         self._main_window = MainWindow()
-        self._main_window.hide()  # Ocultar hasta que termine el splash
         
         def finish_splash():
             splash.finish(self._main_window)
