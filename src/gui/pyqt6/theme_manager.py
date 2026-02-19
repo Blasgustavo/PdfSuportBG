@@ -162,6 +162,18 @@ class ThemeManager:
                 callback()
             except Exception:
                 pass
+        # Also update application stylesheet
+        self._update_app_stylesheet()
+    
+    def _update_app_stylesheet(self):
+        """Actualiza el stylesheet de la aplicación."""
+        try:
+            from PyQt6.QtWidgets import QApplication
+            app = QApplication.instance()
+            if app:
+                app.setStyleSheet(self.get_stylesheet())
+        except Exception:
+            pass
 
     @property
     def theme(self) -> Dict[str, Any]:
@@ -201,6 +213,71 @@ class ThemeManager:
         from PyQt6.QtGui import QColor
         color = self.theme.get(key, "#000000")
         return QColor(color)
+
+    def get_stylesheet(self) -> str:
+        """Genera stylesheet global para la aplicación."""
+        colors = self.colors
+        return f"""
+            QWidget {{
+                background-color: {colors['bg_primary']};
+                color: {colors['fg_primary']};
+                font-family: "Segoe UI", sans-serif;
+                font-size: 14px;
+            }}
+            QMainWindow {{
+                background-color: {colors['bg_primary']};
+            }}
+            QFrame {{
+                background-color: {colors['bg_primary']};
+                color: {colors['fg_primary']};
+            }}
+            QPushButton {{
+                background-color: {colors['primary']};
+                color: white;
+                border: none;
+                border-radius: 6px;
+                padding: 8px 16px;
+                font-weight: 600;
+            }}
+            QPushButton:hover {{
+                background-color: {colors['primary_light']};
+            }}
+            QPushButton:pressed {{
+                background-color: {colors['primary_dark']};
+            }}
+            QLabel {{
+                color: {colors['fg_primary']};
+                background-color: transparent;
+            }}
+            QMenuBar {{
+                background-color: {colors['bg_secondary']};
+                color: {colors['fg_primary']};
+            }}
+            QMenuBar::item:selected {{
+                background-color: {colors['bg_tertiary']};
+            }}
+            QMenu {{
+                background-color: {colors['bg_secondary']};
+                color: {colors['fg_primary']};
+                border: 1px solid {colors['border']};
+            }}
+            QMenu::item:selected {{
+                background-color: {colors['accent']};
+            }}
+            QScrollBar:vertical {{
+                background-color: {colors['bg_secondary']};
+                width: 12px;
+                border: none;
+            }}
+            QScrollBar::handle:vertical {{
+                background-color: {colors['bg_tertiary']};
+                border-radius: 6px;
+                min-height: 20px;
+            }}
+            QScrollBar::handle:vertical:hover {{
+                background-color: {colors['accent']};
+            }}
+        """
 
     def get_palette(self):
         from PyQt6.QtGui import QPalette
