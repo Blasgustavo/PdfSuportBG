@@ -29,6 +29,8 @@ class MainWindow(QMainWindow):
         self.hide()  # Ocultar hasta que splash termine
         
         theme_manager.theme_changed.connect(self._apply_theme)
+        # Forzar actualización de todos los componentes
+        theme_manager.emit_change()
         
         self._drag_position = None
 
