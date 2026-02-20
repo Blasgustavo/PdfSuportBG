@@ -675,7 +675,7 @@ class EditorWindow(QFrame):
         # Configurar modo de zoom Custom con 100% inicial
         self.pdf_view.setZoomMode(QPdfView.ZoomMode.Custom)
         self.pdf_view.setZoomFactor(1.0)  # 100% zoom inicial
-        self.pdf_view.setPageMode(QPdfView.PageMode.SinglePage)
+        self.pdf_view.setPageMode(QPdfView.PageMode.MultiPage)
         
         # Configurar márgenes y espaciado
         self.pdf_view.setDocumentMargins(QMargins(30, 30, 30, 30))  # Márgenes alrededor del documento
