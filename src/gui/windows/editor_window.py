@@ -1,30 +1,222 @@
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, 
-    QFrame, QFileDialog, QSplitter,
-    QToolBar, QToolButton, QStatusBar, QDialog, QListWidget, QListWidgetItem
+    QFrame, QFileDialog, QSplitter, QLineEdit,
+    QToolBar, QToolButton, QStatusBar, QDialog, QListWidget, QListWidgetItem,
+    QGraphicsDropShadowEffect
 )
-from PyQt6.QtCore import Qt, pyqtSignal, QTimer, QEvent, QMargins
-from PyQt6.QtGui import QAction, QIcon, QKeySequence, QShortcut, QKeyEvent
+from PyQt6.QtCore import Qt, pyqtSignal, QTimer, QEvent, QMargins, QPoint, QRect
+from PyQt6.QtGui import QAction, QIcon, QKeySequence, QShortcut, QKeyEvent, QColor, QPainter, QPen, QBrush
 from PyQt6.QtPdf import QPdfDocument
 from PyQt6.QtPdfWidgets import QPdfView
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Dict, List, Callable
 
 from src.gui.themes.theme_manager import theme_manager
+
+
+class WhichKeyPopup(QDialog):
+    """Popup similar to LazyVim's WhichKey for showing keyboard shortcuts."""
+    
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.Popup)
+        self.setModal(False)
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        
+        self.shortcuts: Dict[str, Dict[str, str]] = {}
+        self.mode = "vista"
+        
+        self._setup_ui()
+        self._load_shortcuts()
+    
+    def _setup_ui(self):
+        """Setup the UI for the popup."""
+        self.main_widget = QFrame()
+        self.main_widget.setObjectName("whichkeyMain")
+        self.main_widget.setFixedWidth(350)
+        
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(self.main_widget)
+        
+        self.inner_layout = QVBoxLayout(self.main_widget)
+        self.inner_layout.setContentsMargins(15, 10, 15, 10)
+        self.inner_layout.setSpacing(5)
+        
+        # Title label
+        self.title_label = QLabel("Atajos de Teclado")
+        self.title_label.setObjectName("whichkeyTitle")
+        self.inner_layout.addWidget(self.title_label)
+        
+        # Mode label
+        self.mode_label = QLabel("Modo: VISTA")
+        self.mode_label.setObjectName("whichkeyMode")
+        self.inner_layout.addWidget(self.mode_label)
+        
+        # Separator
+        self.inner_layout.addSpacing(5)
+        
+        # Shortcuts list
+        self.shortcuts_list = QListWidget()
+        self.shortcuts_list.setObjectName("whichkeyList")
+        self.shortcuts_list.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self.inner_layout.addWidget(self.shortcuts_list)
+        
+        self._apply_style()
+    
+    def _apply_style(self):
+        """Apply styles to the popup."""
+        colors = theme_manager.colors
+        self.setStyleSheet(f"""
+            QDialog {{
+                background: transparent;
+            }}
+            QFrame#whichkeyMain {{
+                background-color: {colors['bg_secondary']};
+                border: 1px solid {colors['accent']};
+                border-radius: 8px;
+            }}
+            QLabel#whichkeyTitle {{
+                color: {colors['accent']};
+                font-size: 16px;
+                font-weight: bold;
+            }}
+            QLabel#whichkeyMode {{
+                color: {colors['fg_secondary']};
+                font-size: 12px;
+            }}
+            QListWidget {{
+                background: transparent;
+                border: none;
+                color: {colors['fg_primary']};
+                font-size: 12px;
+            }}
+            QListWidget::item {{
+                padding: 4px 0;
+            }}
+            QListWidget::item:selected {{
+                background: transparent;
+                color: {colors['accent']};
+            }}
+        """)
+    
+    def _load_shortcuts(self):
+        """Load shortcuts based on current mode."""
+        if self.mode == "vista":
+            shortcuts = {
+                "Ctrl + =": "Acercar (Zoom In)",
+                "Ctrl + -": "Alejar (Zoom Out)",
+                "Ctrl + 0": "Zoom 100% (Actual Size)",
+                "Ctrl + 1": "Ajustar a Página (Fit Page)",
+                "Ctrl + 2": "Ajustar al Ancho (Fit Width)",
+                "Ctrl + →": "Página Siguiente",
+                "Ctrl + ←": "Página Anterior",
+                "Ctrl + G": "Ir a Página Específica",
+                "Ctrl + F": "Buscar en Documento",
+                "Ctrl + R": "Rotar Página 90°",
+                "Ctrl + Shift + R": "Rotar Página -90°",
+                "Ctrl + L": "Pantalla Completa",
+                "Home": "Primera Página",
+                "End": "Última Página",
+                "Page Up": "Página Arriba",
+                "Page Down": "Página Abajo",
+                "Space": "Scroll Down",
+                "Shift + Space": "Scroll Up",
+                "F1": "Mostrar Comandos",
+                "F8": "Mostrar/Ocultar Paneles",
+            }
+        else:  # modo edición
+            shortcuts = {
+                "Ctrl + Z": "Deshacer (Undo)",
+                "Ctrl + Y": "Rehacer (Redo)",
+                "Ctrl + S": "Guardar",
+                "Ctrl + C": "Copiar",
+                "Ctrl + V": "Pegar",
+                "Ctrl + X": "Cortar",
+                "Delete": "Eliminar Selección",
+                "Ctrl + A": "Seleccionar Todo",
+                "Ctrl + D": "Duplicar Selección",
+                "Escape": "Salir del Modo Edición",
+                "Ctrl + E": "Modo Vista",
+            }
+        
+        self.shortcuts_list.clear()
+        for key, desc in shortcuts.items():
+            item = QListWidgetItem(f"{key:<20} {desc}")
+            item.setData(1, key)
+            self.shortcuts_list.addItem(item)
+    
+    def set_mode(self, mode: str):
+        """Set the mode and reload shortcuts."""
+        self.mode = mode
+        self.mode_label.setText(f"Modo: {mode.upper()}")
+        self._load_shortcuts()
+    
+    def show_at_position(self, x: int, y: int, parent_width: int = 0, parent_height: int = 0):
+        """Show the popup at the specified position."""
+        # Adjust position to stay within screen bounds
+        screen_geometry = self.screen().availableGeometry()
+        
+        popup_width = self.width()
+        popup_height = self.height()
+        
+        # Calculate position (centered on the right side of parent)
+        new_x = x + 20
+        new_y = y
+        
+        # Ensure popup stays within screen bounds
+        if new_x + popup_width > screen_geometry.right():
+            new_x = x - popup_width - 20
+        
+        if new_y + popup_height > screen_geometry.bottom():
+            new_y = screen_geometry.bottom() - popup_height - 10
+        
+        if new_y < screen_geometry.top():
+            new_y = screen_geometry.top() + 10
+        
+        self.move(new_x, new_y)
+        self.show()
+        
+        # Auto-hide after 5 seconds
+        QTimer.singleShot(5000, self.hide)
 
 
 class PDFViewerWidget(QPdfView):
     """Custom QPdfView that emits signals for keyboard shortcuts."""
     
-    # Signals for keyboard shortcuts
+    # Signals for keyboard shortcuts - View Mode
     zoom_in_requested = pyqtSignal()
     zoom_out_requested = pyqtSignal()
     zoom_reset_requested = pyqtSignal()
+    zoom_fit_page_requested = pyqtSignal()
+    zoom_fit_width_requested = pyqtSignal()
     next_page_requested = pyqtSignal()
     previous_page_requested = pyqtSignal()
     first_page_requested = pyqtSignal()
     last_page_requested = pyqtSignal()
+    goto_page_requested = pyqtSignal()
+    search_requested = pyqtSignal()
+    rotate_cw_requested = pyqtSignal()
+    rotate_ccw_requested = pyqtSignal()
+    fullscreen_requested = pyqtSignal()
+    toggle_panels_requested = pyqtSignal()
+    scroll_up_requested = pyqtSignal()
+    scroll_down_requested = pyqtSignal()
+    page_up_requested = pyqtSignal()
+    page_down_requested = pyqtSignal()
     help_requested = pyqtSignal()
+    
+    # Edit mode signals
+    undo_requested = pyqtSignal()
+    redo_requested = pyqtSignal()
+    copy_requested = pyqtSignal()
+    paste_requested = pyqtSignal()
+    cut_requested = pyqtSignal()
+    select_all_requested = pyqtSignal()
+    delete_requested = pyqtSignal()
+    save_requested = pyqtSignal()
+    switch_to_view_mode_requested = pyqtSignal()
     
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -45,9 +237,19 @@ class PDFViewerWidget(QPdfView):
             self.zoom_out_requested.emit()
             return
         
-        # Ctrl + 0 (zoom reset)
+        # Ctrl + 0 (zoom reset to 100%)
         if modifiers == Qt.KeyboardModifier.ControlModifier and key == Qt.Key.Key_0:
             self.zoom_reset_requested.emit()
+            return
+        
+        # Ctrl + 1 (Fit Page)
+        if modifiers == Qt.KeyboardModifier.ControlModifier and key == Qt.Key.Key_1:
+            self.zoom_fit_page_requested.emit()
+            return
+        
+        # Ctrl + 2 (Fit Width)
+        if modifiers == Qt.KeyboardModifier.ControlModifier and key == Qt.Key.Key_2:
+            self.zoom_fit_width_requested.emit()
             return
         
         # Ctrl + Right (next page)
@@ -60,6 +262,34 @@ class PDFViewerWidget(QPdfView):
             self.previous_page_requested.emit()
             return
         
+        # Ctrl + G (Go to page)
+        if modifiers == Qt.KeyboardModifier.ControlModifier and key == Qt.Key.Key_G:
+            self.goto_page_requested.emit()
+            return
+        
+        # Ctrl + F (Search)
+        if modifiers == Qt.KeyboardModifier.ControlModifier and key == Qt.Key.Key_F:
+            self.search_requested.emit()
+            return
+        
+        # Ctrl + R (Rotate clockwise)
+        if modifiers == Qt.KeyboardModifier.ControlModifier and key == Qt.Key.Key_R:
+            if modifiers == Qt.KeyboardModifier.ShiftModifier:
+                self.rotate_ccw_requested.emit()
+            else:
+                self.rotate_cw_requested.emit()
+            return
+        
+        # Ctrl + L (Fullscreen)
+        if modifiers == Qt.KeyboardModifier.ControlModifier and key == Qt.Key.Key_L:
+            self.fullscreen_requested.emit()
+            return
+        
+        # F8 (Toggle panels)
+        if key == Qt.Key.Key_F8:
+            self.toggle_panels_requested.emit()
+            return
+        
         # Home (first page)
         if key == Qt.Key.Key_Home:
             self.first_page_requested.emit()
@@ -70,10 +300,79 @@ class PDFViewerWidget(QPdfView):
             self.last_page_requested.emit()
             return
         
+        # Page Up
+        if key == Qt.Key.Key_PageUp:
+            self.page_up_requested.emit()
+            return
+        
+        # Page Down
+        if key == Qt.Key.Key_PageDown:
+            self.page_down_requested.emit()
+            return
+        
+        # Space (scroll down)
+        if key == Qt.Key.Key_Space:
+            if modifiers == Qt.KeyboardModifier.ShiftModifier:
+                self.scroll_up_requested.emit()
+            else:
+                self.scroll_down_requested.emit()
+            return
+        
         # F1 or Ctrl + / (help)
         if key == Qt.Key.Key_F1 or (modifiers == Qt.KeyboardModifier.ControlModifier and key == Qt.Key.Key_Slash):
             self.help_requested.emit()
             return
+        
+        # Edit mode shortcuts
+        # Ctrl + Z (Undo)
+        if modifiers == Qt.KeyboardModifier.ControlModifier and key == Qt.Key.Key_Z:
+            self.undo_requested.emit()
+            return
+        
+        # Ctrl + Y (Redo)
+        if modifiers == Qt.KeyboardModifier.ControlModifier and key == Qt.Key.Key_Y:
+            self.redo_requested.emit()
+            return
+        
+        # Ctrl + C (Copy)
+        if modifiers == Qt.KeyboardModifier.ControlModifier and key == Qt.Key.Key_C:
+            self.copy_requested.emit()
+            return
+        
+        # Ctrl + V (Paste)
+        if modifiers == Qt.KeyboardModifier.ControlModifier and key == Qt.Key.Key_V:
+            self.paste_requested.emit()
+            return
+        
+        # Ctrl + X (Cut)
+        if modifiers == Qt.KeyboardModifier.ControlModifier and key == Qt.Key.Key_X:
+            self.cut_requested.emit()
+            return
+        
+        # Ctrl + A (Select All)
+        if modifiers == Qt.KeyboardModifier.ControlModifier and key == Qt.Key.Key_A:
+            self.select_all_requested.emit()
+            return
+        
+        # Delete
+        if key == Qt.Key.Key_Delete:
+            self.delete_requested.emit()
+            return
+        
+        # Ctrl + S (Save)
+        if modifiers == Qt.KeyboardModifier.ControlModifier and key == Qt.Key.Key_S:
+            self.save_requested.emit()
+            return
+        
+        # Ctrl + E (Switch to view mode)
+        if modifiers == Qt.KeyboardModifier.ControlModifier and key == Qt.Key.Key_E:
+            self.switch_to_view_mode_requested.emit()
+            return
+        
+        # Escape - close dialogs
+        if key == Qt.Key.Key_Escape:
+            # Let parent handle escape
+            pass
         
         # Call parent for other keys
         super().keyPressEvent(event)
@@ -181,97 +480,232 @@ class EditorWindow(QFrame):
             self._set_temp_cursor(Qt.CursorShape.PointingHandCursor)
     
     def _show_commands_dialog(self):
-        """Muestra un diálogo con todos los comandos disponibles."""
-        # Verificar si ya hay un diálogo abierto
+        """Muestra el diálogo de comandos usando WhichKeyPopup."""
+        # Close existing dialogs
         for widget in self.findChildren(QDialog, "commandsDialog"):
             widget.close()
         
-        dialog = QDialog(self)
-        dialog.setObjectName("commandsDialog")
-        dialog.setWindowTitle("Atajos de Teclado")
-        dialog.setMinimumSize(500, 400)
+        # Create and show WhichKey popup
+        self._whichkey = WhichKeyPopup(self)
+        mode = "vista" if self._current_mode == self.MODE_READ else "edición"
+        self._whichkey.set_mode(mode)
         
-        # Centrar diálogo
-        dialog.setGeometry(
-            self.x() + (self.width() - 500) // 2,
-            self.y() + (self.height() - 400) // 2,
-            500, 400
+        # Position near center of the editor
+        self._whichkey.show_at_position(
+            self.x() + self.width() // 2,
+            self.y() + self.height() // 2,
+            self.width(),
+            self.height()
         )
+    
+    def _on_fit_page(self):
+        """Ajustar a página completa."""
+        if hasattr(self, 'pdf_view') and self.pdf_view:
+            self.pdf_view.setZoomMode(QPdfView.ZoomMode.FitInView)
+            self.pdf_view.update()
+            self.pdf_view.repaint()
+            self.zoom_info_label.setText("Fit Page")
+    
+    def _on_fit_width(self):
+        """Ajustar al ancho de la página."""
+        if hasattr(self, 'pdf_view') and self.pdf_view:
+            self.pdf_view.setZoomMode(QPdfView.ZoomMode.FitToWidth)
+            self.pdf_view.update()
+            self.pdf_view.repaint()
+            self.zoom_info_label.setText("Fit Width")
+    
+    def _show_goto_page_dialog(self):
+        """Mostrar diálogo para ir a página específica."""
+        dialog = QDialog(self)
+        dialog.setObjectName("gotoPageDialog")
+        dialog.setWindowTitle("Ir a Página")
+        dialog.setFixedSize(300, 120)
         
         layout = QVBoxLayout(dialog)
         
-        # Título
-        title = QLabel("Atajos de Teclado Disponibles")
-        title.setStyleSheet("font-size: 16px; font-weight: bold; margin-bottom: 10px;")
-        layout.addWidget(title)
+        label = QLabel("Número de página:")
+        layout.addWidget(label)
         
-        # Lista de comandos
-        commands_list = QListWidget()
-        commands_list.setObjectName("commandsList")
+        page_input = QLineEdit()
+        page_input.setPlaceholderText("1 - " + str(self._total_pages if self._total_pages > 0 else 1))
+        layout.addWidget(page_input)
         
-        commands = [
-            ("Ctrl + =", "Acercar (Zoom In)"),
-            ("Ctrl + -", "Alejar (Zoom Out)"),
-            ("Ctrl + 0", "Zoom 100%"),
-            ("Ctrl + →", "Siguiente página"),
-            ("Ctrl + ←", "Página anterior"),
-            ("Home", "Primera página"),
-            ("End", "Última página"),
-            ("Ctrl + /", "Mostrar comandos"),
-            ("F1", "Mostrar comandos"),
-            ("Escape", "Cerrar este diálogo"),
-        ]
+        buttons_layout = QHBoxLayout()
+        ok_btn = QPushButton("Ir")
+        cancel_btn = QPushButton("Cancelar")
         
-        for shortcut, description in commands:
-            item = QListWidgetItem(f"{shortcut:<15} → {description}")
-            item.setData(1, shortcut)  # Guardar shortcut para referencia
-            commands_list.addItem(item)
+        def go_to_page():
+            try:
+                page_num = int(page_input.text()) - 1
+                if 0 <= page_num < self._total_pages:
+                    self._current_page = page_num
+                    from PyQt6.QtCore import QPointF
+                    nav = self.pdf_view.pageNavigator()
+                    current_zoom = self.pdf_view.zoomFactor()
+                    nav.jump(page_num, QPointF(), current_zoom)
+                    self.page_info_label.setText(f"Página: {page_num + 1} / {self._total_pages}")
+                    dialog.close()
+            except ValueError:
+                pass
         
-        layout.addWidget(commands_list)
+        ok_btn.clicked.connect(go_to_page)
+        cancel_btn.clicked.connect(dialog.close)
         
-        # Cerrar botón
-        close_btn = QPushButton("Cerrar")
-        close_btn.clicked.connect(dialog.close)
-        layout.addWidget(close_btn)
+        buttons_layout.addWidget(ok_btn)
+        buttons_layout.addWidget(cancel_btn)
+        layout.addLayout(buttons_layout)
         
-        # Estilo del diálogo
+        page_input.returnPressed.connect(go_to_page)
+        
         colors = theme_manager.colors
         dialog.setStyleSheet(f"""
-            QDialog {{
-                background-color: {colors['bg_primary']};
-            }}
-            QLabel {{
-                color: {colors['fg_primary']};
-            }}
-            QListWidget {{
-                background-color: {colors['bg_secondary']};
+            QDialog {{ background-color: {colors['bg_primary']}; }}
+            QLabel {{ color: {colors['fg_primary']}; }}
+            QLineEdit {{ 
+                background-color: {colors['bg_secondary']}; 
                 color: {colors['fg_primary']};
                 border: 1px solid {colors['border']};
-                border-radius: 4px;
                 padding: 5px;
-            }}
-            QListWidget::item {{
-                padding: 8px;
-                border-bottom: 1px solid {colors['border']};
-            }}
-            QListWidget::item:selected {{
-                background-color: {colors['accent']};
-                color: white;
-            }}
-            QPushButton {{
-                background-color: {colors['accent']};
-                color: white;
-                border: none;
                 border-radius: 4px;
-                padding: 8px 16px;
-                font-weight: bold;
             }}
-            QPushButton:hover {{
-                opacity: 0.9;
+            QPushButton {{ 
+                background-color: {colors['accent']}; 
+                color: white; 
+                border: none; 
+                padding: 8px 16px; 
+                border-radius: 4px;
             }}
         """)
         
         dialog.exec()
+    
+    def _show_search_dialog(self):
+        """Mostrar diálogo de búsqueda."""
+        dialog = QDialog(self)
+        dialog.setObjectName("searchDialog")
+        dialog.setWindowTitle("Buscar en Documento")
+        dialog.setFixedSize(400, 100)
+        
+        layout = QVBoxLayout(dialog)
+        
+        search_input = QLineEdit()
+        search_input.setPlaceholderText("Buscar texto...")
+        layout.addWidget(search_input)
+        
+        buttons_layout = QHBoxLayout()
+        search_btn = QPushButton("Buscar")
+        close_btn = QPushButton("Cerrar")
+        
+        def search_text():
+            # QPdfView doesn't have built-in search, so we'll show a message
+            self.status_label.setText(f"Búsqueda: '{search_input.text()}' - Funcionalidad en desarrollo")
+        
+        search_btn.clicked.connect(search_text)
+        close_btn.clicked.connect(dialog.close)
+        
+        buttons_layout.addWidget(search_btn)
+        buttons_layout.addWidget(close_btn)
+        layout.addLayout(buttons_layout)
+        
+        search_input.returnPressed.connect(search_text)
+        
+        colors = theme_manager.colors
+        dialog.setStyleSheet(f"""
+            QDialog {{ background-color: {colors['bg_primary']}; }}
+            QLabel {{ color: {colors['fg_primary']}; }}
+            QLineEdit {{ 
+                background-color: {colors['bg_secondary']}; 
+                color: {colors['fg_primary']};
+                border: 1px solid {colors['border']};
+                padding: 8px;
+                border-radius: 4px;
+            }}
+            QPushButton {{ 
+                background-color: {colors['accent']}; 
+                color: white; 
+                border: none; 
+                padding: 8px 16px; 
+                border-radius: 4px;
+            }}
+        """)
+        
+        dialog.exec()
+    
+    def _on_rotate_cw(self):
+        """Rotar página 90° clockwise."""
+        self.status_label.setText("Rotar 90° - Funcionalidad en desarrollo")
+    
+    def _on_rotate_ccw(self):
+        """Rotar página -90° counter-clockwise."""
+        self.status_label.setText("Rotar -90° - Funcionalidad en desarrollo")
+    
+    def _on_toggle_fullscreen(self):
+        """Alternar pantalla completa."""
+        if self.isFullScreen():
+            self.showNormal()
+        else:
+            self.showFullScreen()
+        self.status_label.setText("Pantalla completa" if self.isFullScreen() else "Modo normal")
+    
+    def _on_toggle_panels(self):
+        """Mostrar/ocultar paneles laterales."""
+        if hasattr(self, 'left_panel') and hasattr(self, 'right_panel'):
+            left_visible = self.left_panel.isVisible()
+            right_visible = self.right_panel.isVisible()
+            self.left_panel.setVisible(not left_visible)
+            self.right_panel.setVisible(not right_visible)
+            self.status_label.setText("Paneles ocultos" if not left_visible else "Paneles visibles")
+    
+    def _on_page_up(self):
+        """Página arriba (igual que previous page en modo SinglePage, o scroll en MultiPage)."""
+        self.previous_page()
+    
+    def _on_page_down(self):
+        """Página abajo (igual que next page en modo SinglePage, o scroll en MultiPage)."""
+        self.next_page()
+    
+    def _on_scroll_up(self):
+        """Scroll arriba."""
+        if hasattr(self, 'pdf_view'):
+            self.pdf_view.verticalScrollBar().setValue(
+                self.pdf_view.verticalScrollBar().value() - 100
+            )
+    
+    def _on_scroll_down(self):
+        """Scroll abajo."""
+        if hasattr(self, 'pdf_view'):
+            self.pdf_view.verticalScrollBar().setValue(
+                self.pdf_view.verticalScrollBar().value() + 100
+            )
+    
+    # Edit mode handlers
+    def _on_undo(self):
+        """Deshacer."""
+        self.status_label.setText("Deshacer - Funcionalidad en desarrollo")
+    
+    def _on_redo(self):
+        """Rehacer."""
+        self.status_label.setText("Rehacer - Funcionalidad en desarrollo")
+    
+    def _on_copy(self):
+        """Copiar."""
+        self.status_label.setText("Copiar - Funcionalidad en desarrollo")
+    
+    def _on_paste(self):
+        """Pegar."""
+        self.status_label.setText("Pegar - Funcionalidad en desarrollo")
+    
+    def _on_cut(self):
+        """Cortar."""
+        self.status_label.setText("Cortar - Funcionalidad en desarrollo")
+    
+    def _on_select_all(self):
+        """Seleccionar todo."""
+        self.status_label.setText("Seleccionar todo - Funcionalidad en desarrollo")
+    
+    def _on_delete(self):
+        """Eliminar."""
+        self.status_label.setText("Eliminar - Funcionalidad en desarrollo")
     
     def _update_window_title(self):
         if hasattr(self, 'file_name_label'):
@@ -685,11 +1119,34 @@ class EditorWindow(QFrame):
         self.pdf_view.zoom_in_requested.connect(self.zoom_in)
         self.pdf_view.zoom_out_requested.connect(self.zoom_out)
         self.pdf_view.zoom_reset_requested.connect(self._on_zoom_reset_shortcut)
+        self.pdf_view.zoom_fit_page_requested.connect(self._on_fit_page)
+        self.pdf_view.zoom_fit_width_requested.connect(self._on_fit_width)
         self.pdf_view.next_page_requested.connect(self.next_page)
         self.pdf_view.previous_page_requested.connect(self.previous_page)
         self.pdf_view.first_page_requested.connect(self._go_to_first_page)
         self.pdf_view.last_page_requested.connect(self._go_to_last_page)
+        self.pdf_view.goto_page_requested.connect(self._show_goto_page_dialog)
+        self.pdf_view.search_requested.connect(self._show_search_dialog)
+        self.pdf_view.rotate_cw_requested.connect(self._on_rotate_cw)
+        self.pdf_view.rotate_ccw_requested.connect(self._on_rotate_ccw)
+        self.pdf_view.fullscreen_requested.connect(self._on_toggle_fullscreen)
+        self.pdf_view.toggle_panels_requested.connect(self._on_toggle_panels)
+        self.pdf_view.page_up_requested.connect(self._on_page_up)
+        self.pdf_view.page_down_requested.connect(self._on_page_down)
+        self.pdf_view.scroll_up_requested.connect(self._on_scroll_up)
+        self.pdf_view.scroll_down_requested.connect(self._on_scroll_down)
         self.pdf_view.help_requested.connect(self._show_commands_dialog)
+        
+        # Edit mode signals (for now, just show message)
+        self.pdf_view.undo_requested.connect(self._on_undo)
+        self.pdf_view.redo_requested.connect(self._on_redo)
+        self.pdf_view.copy_requested.connect(self._on_copy)
+        self.pdf_view.paste_requested.connect(self._on_paste)
+        self.pdf_view.cut_requested.connect(self._on_cut)
+        self.pdf_view.select_all_requested.connect(self._on_select_all)
+        self.pdf_view.delete_requested.connect(self._on_delete)
+        self.pdf_view.save_requested.connect(self._save_pdf)
+        self.pdf_view.switch_to_view_mode_requested.connect(self.set_mode_read)
         
         # Crear documento PDF
         self._pdf_document = QPdfDocument(self.pdf_view)
