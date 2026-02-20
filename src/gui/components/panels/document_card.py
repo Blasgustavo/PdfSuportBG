@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import QFrame, QVBoxLayout, QScrollArea, QTableWidget, QTableWidgetItem, QHeaderView
+from PyQt6.QtWidgets import QFrame, QVBoxLayout, QScrollArea, QTableWidget, QTableWidgetItem, QHeaderView, QWidget
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QFont
 from typing import Optional

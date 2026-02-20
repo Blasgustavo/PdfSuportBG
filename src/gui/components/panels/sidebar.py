@@ -1,6 +1,8 @@
-from PyQt6.QtWidgets import QFrame, QVBoxLayout, QLabel, QPushButton
+from PyQt6.QtWidgets import QFrame, QVBoxLayout, QLabel, QPushButton, QWidget
 from PyQt6.QtCore import Qt, pyqtSignal
 from typing import Optional
+
+from src.utils.logger import logger
 
 
 class SidebarButton(QPushButton):
@@ -43,15 +45,16 @@ class SidebarButton(QPushButton):
 
 
 class Sidebar(QFrame):
-    """Barra lateral de navegación."""
+    """Barra lateral de navegación simplificada."""
     
-    navigation_requested = pyqtSignal(str)
     open_editor = pyqtSignal()
+    open_settings = pyqtSignal()
+    open_account = pyqtSignal()
     
     def __init__(self, parent: Optional[QWidget] = None):
         super().__init__(parent)
         self.setObjectName("sidebar")
-        self.setFixedWidth(220)
+        self.setFixedWidth(100)
         
         self._setup_ui()
         self._apply_style()
@@ -61,26 +64,41 @@ class Sidebar(QFrame):
     
     def _setup_ui(self):
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(0)
+        layout.setContentsMargins(5, 15, 5, 15)
+        layout.setSpacing(8)
         
-        # Botones de navegación
-        nav_buttons = [
-            ("🏠", "Inicio", "start"),
-            ("📄", "Nuevo", "new"),
-            ("🔧", "Reparar", "repair"),
-            ("🔀", "Fusionar", "merge"),
-            ("✂️", "Dividir", "split"),
-            ("⚙️", "Ajustes", "settings"),
-        ]
+        self.home_btn = self._create_nav_button("🏠", "Inicio")
         
-        for icon, text, page in nav_buttons:
-            btn = self._create_nav_button(icon, text, page)
-            layout.addWidget(btn)
+        self.new_btn = self._create_nav_button("📄", "Nuevo")
+        self.new_btn.clicked.connect(self._on_new_clicked)
+        
+        layout.addWidget(self.home_btn)
+        layout.addWidget(self.new_btn)
         
         layout.addStretch()
+        
+        self.settings_btn = self._create_nav_button("⚙️", "Configuración")
+        self.settings_btn.clicked.connect(self._on_settings_clicked)
+        
+        self.account_btn = self._create_nav_button("👤", "Cuenta")
+        self.account_btn.clicked.connect(self._on_account_clicked)
+        
+        layout.addWidget(self.settings_btn)
+        layout.addWidget(self.account_btn)
     
-    def _create_nav_button(self, icon: str, text: str, page: str) -> QPushButton:
+    def _on_new_clicked(self):
+        logger.action(f"Clic en botón Nuevo")
+        self.open_editor.emit()
+    
+    def _on_settings_clicked(self):
+        logger.action(f"Clic en botón Configuración")
+        self.open_settings.emit()
+    
+    def _on_account_clicked(self):
+        logger.action(f"Clic en botón Cuenta")
+        self.open_account.emit()
+    
+    def _create_nav_button(self, icon: str, text: str) -> QPushButton:
         btn = QPushButton()
         btn.setCursor(Qt.CursorShape.PointingHandCursor)
         btn.setFixedSize(90, 80)
@@ -100,8 +118,6 @@ class Sidebar(QFrame):
         
         layout.addWidget(icon_label)
         layout.addWidget(text_label)
-        
-        btn.clicked.connect(lambda: self.navigation_requested.emit(page))
         
         return btn
     

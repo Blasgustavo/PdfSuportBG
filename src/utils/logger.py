@@ -21,7 +21,7 @@ class Logger:
         self._logger.setLevel(level)
 
         formatter = logging.Formatter(
-            "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+            "%(message)s",
             datefmt="%Y-%m-%d %H:%M:%S"
         )
 
@@ -42,6 +42,36 @@ class Logger:
         if self._logger is None:
             return self.setup()
         return self._logger
+
+    def app(self, message: str):
+        self._logger.info(f"🚀 [APP] : {message}")
+
+    def nav(self, message: str):
+        self._logger.info(f"🧭 [NAV] : {message}")
+
+    def action(self, message: str):
+        self._logger.info(f"👆 [ACTION] : {message}")
+
+    def ui(self, message: str):
+        self._logger.info(f"🎨 [UI] : {message}")
+
+    def config(self, message: str):
+        self._logger.info(f"⚙️ [CONFIG] : {message}")
+
+    def user(self, message: str):
+        self._logger.info(f"👤 [USER] : {message}")
+
+    def file(self, message: str):
+        self._logger.info(f"📄 [FILE] : {message}")
+
+    def warning(self, message: str):
+        self._logger.warning(f"⚠️ [WARNING] : {message}")
+
+    def error(self, message: str):
+        self._logger.error(f"❌ [ERROR] : {message}")
+
+    def debug(self, message: str):
+        self._logger.debug(f"🔍 [DEBUG] : {message}")
 
 
 logger = Logger()
