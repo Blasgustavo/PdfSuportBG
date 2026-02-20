@@ -1,13 +1,14 @@
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, 
-    QFrame, QFileDialog, QScrollArea, QSplitter, QSizePolicy,
+    QFrame, QFileDialog, QSplitter,
     QToolBar, QToolButton, QStatusBar, QDialog, QListWidget, QListWidgetItem
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QTimer, QEvent
-from PyQt6.QtGui import QAction, QIcon, QPixmap, QImage, QKeySequence, QShortcut
+from PyQt6.QtGui import QAction, QIcon, QKeySequence, QShortcut
+from PyQt6.QtPdf import QPdfDocument
+from PyQt6.QtPdfWidgets import QPdfView
 from pathlib import Path
 from typing import Optional
-import fitz  # PyMuPDF
 
 from src.gui.themes.theme_manager import theme_manager
 
@@ -30,7 +31,7 @@ class EditorWindow(QFrame):
         self._current_mode = self.MODE_READ  # Modo lectura por defecto
         self._current_page = 0
         self._zoom_level = 1.0
-        self._pdf_document = None
+        self._pdf_document = None  # QPdfDocument
         self._total_pages = 0
         
         # Cursor timer para restaurar cursor
@@ -76,8 +77,8 @@ class EditorWindow(QFrame):
     
     def _set_temp_cursor(self, cursor_shape: Qt.CursorShape):
         """Cambia temporalmente el cursor y lo restaura después de 500ms."""
-        if hasattr(self, 'pdf_scroll_area') and self.pdf_scroll_area:
-            self.pdf_scroll_area.setCursor(cursor_shape)
+        if hasattr(self, 'pdf_view') and self.pdf_view:
+            self.pdf_view.setCursor(cursor_shape)
         
         # Reiniciar timer
         self._cursor_timer.stop()
@@ -86,22 +87,30 @@ class EditorWindow(QFrame):
     def _restore_cursor(self):
         """Restaura el cursor predeterminado."""
         self._cursor_timer.stop()
-        if hasattr(self, 'pdf_scroll_area') and self.pdf_scroll_area:
-            self.pdf_scroll_area.setCursor(Qt.CursorShape.ArrowCursor)
+        if hasattr(self, 'pdf_view') and self.pdf_view:
+            self.pdf_view.setCursor(Qt.CursorShape.ArrowCursor)
     
     def _go_to_first_page(self):
         """Ir a la primera página."""
-        if self._total_pages > 0:
+        if self._pdf_document and self._total_pages > 0:
             self._current_page = 0
-            self._render_current_page()
+            nav = self.pdf_view.pageNavigator()
+            from PyQt6.QtCore import QPointF
+            nav.jump(0, QPointF(), None)
+            self.page_info_label.setText(f"Página: 1 / {self._total_pages}")
             self.status_label.setText("Primera página")
+            self._set_temp_cursor(Qt.CursorShape.PointingHandCursor)
     
     def _go_to_last_page(self):
         """Ir a la última página."""
-        if self._total_pages > 0:
+        if self._pdf_document and self._total_pages > 0:
             self._current_page = self._total_pages - 1
-            self._render_current_page()
+            nav = self.pdf_view.pageNavigator()
+            from PyQt6.QtCore import QPointF
+            nav.jump(self._current_page, QPointF(), None)
+            self.page_info_label.setText(f"Página: {self._total_pages} / {self._total_pages}")
             self.status_label.setText(f"Página {self._total_pages}")
+            self._set_temp_cursor(Qt.CursorShape.PointingHandCursor)
     
     def _show_commands_dialog(self):
         """Muestra un diálogo con todos los comandos disponibles."""
@@ -292,186 +301,74 @@ class EditorWindow(QFrame):
         
         return super().eventFilter(obj, event)
     
-    def _render_blank_document(self):
-        """Renderiza un documento en blanco."""
-        self.file_name_label.setText("Nuevo Documento en Blanco")
-        self.info_label.setVisible(False)
-        self.pdf_scroll_area.setVisible(True)
-        
-        # Crear página en blanco
-        blank_pixmap = self._create_blank_page()
-        self.page_label.setPixmap(blank_pixmap)
-        
-        self._total_pages = 1
-        self._current_page = 0
-        self.page_info_label.setText("Página: 1 / 1")
-        self.status_label.setText("Modo Lectura - Documento en blanco")
-    
-    def _create_blank_page(self, width=595, height=842):
-        """Crea una página en blanco (A4)."""
-        # Crear imagen en blanco
-        from PyQt6.QtGui import QImage, QPainter, QColor, QPen
-        
-        image = QImage(width, height, QImage.Format.Format_RGB32)
-        image.fill(QColor(255, 255, 255))
-        
-        painter = QPainter(image)
-        painter.setPen(QPen(QColor(200, 200, 200)))
-        painter.drawRect(0, 0, width-1, height-1)
-        painter.end()
-        
-        pixmap = QPixmap.fromImage(image)
-        return pixmap.scaled(
-            int(width * self._zoom_level), 
-            int(height * self._zoom_level),
-            Qt.AspectRatioMode.KeepAspectRatio,
-            Qt.TransformationMode.SmoothTransformation
-        )
-    
     def load_pdf(self, file_path: str):
-        """Carga un archivo PDF y lo renderiza."""
+        """Carga un archivo PDF usando QPdfView."""
         try:
             self.current_file_path = file_path
-            self._pdf_document = fitz.open(file_path)
-            self._total_pages = len(self._pdf_document)
-            self._current_page = 0
             
-            # Mostrar área PDF, ocultar label de info
-            self.info_label.setVisible(False)
-            self.pdf_scroll_area.setVisible(True)
+            # Cargar el PDF en el documento
+            self._pdf_document.load(file_path)
             
-            # Renderizar todas las páginas (permite scroll vertical)
-            self._render_all_pages()
-            
-            # Actualizar información
-            self.file_name_label.setText(Path(file_path).name)
-            self.page_info_label.setText(f"Páginas: {self._total_pages}")
-            self.status_label.setText("Modo Lectura - Usa el scroll para navegar")
-            
-            # Siempre abrir en modo lectura
-            self.set_mode_read()
-            
-            self.file_opened.emit(file_path)
+            # Verificar que se cargó correctamente
+            if self._pdf_document.status() == QPdfDocument.Status.Ready:
+                self._total_pages = self._pdf_document.pageCount()
+                self._current_page = 0
+                
+                # Ocultar label de info, mostrar visor PDF
+                self.info_label.setVisible(False)
+                self.pdf_view.setVisible(True)
+                
+                # Actualizar información
+                self.file_name_label.setText(Path(file_path).name)
+                self.page_info_label.setText(f"Páginas: {self._total_pages}")
+                self.status_label.setText(f"Modo Lectura - {self._total_pages} páginas")
+                
+                # Siempre abrir en modo lectura
+                self.set_mode_read()
+                
+                self.file_opened.emit(file_path)
+            else:
+                self.status_label.setText(f"Error al cargar PDF: estado = {self._pdf_document.status()}")
             
         except Exception as e:
             self.status_label.setText(f"Error al cargar PDF: {str(e)}")
     
-    def _render_current_page(self):
-        """Renderiza la página actual del PDF."""
-        if self._pdf_document is None:
-            return
-        
-        try:
-            page = self._pdf_document[self._current_page]
-            
-            # Calcular zoom
-            mat = fitz.Matrix(self._zoom_level, self._zoom_level)
-            pix = page.get_pixmap(matrix=mat)
-            
-            # Convertir a QImage
-            img = QImage(pix.samples, pix.width, pix.height, pix.stride, QImage.Format.Format_RGB888)
-            
-            # Mostrar en label
-            pixmap = QPixmap.fromImage(img)
-            self.page_label.setPixmap(pixmap)
-            
-            # Actualizar tamaño mínimo del contenedor para permitir scroll
-            self.page_label.setMinimumSize(pixmap.width(), pixmap.height())
-            
-            # Actualizar info
-            self.page_info_label.setText(f"Página: {self._current_page + 1} / {self._total_pages}")
-            
-        except Exception as e:
-            self.status_label.setText(f"Error al renderizar: {str(e)}")
-    
-    def _render_all_pages(self):
-        """Renderiza todas las páginas del PDF en scroll vertical."""
-        if self._pdf_document is None:
-            return
-        
-        try:
-            # Limpiar layout anterior
-            while self.pdf_layout.count():
-                item = self.pdf_layout.takeAt(0)
-                if item.widget():
-                    item.widget().deleteLater()
-            
-            # Renderizar cada página con su tamaño real
-            for page_num in range(self._total_pages):
-                page = self._pdf_document[page_num]
-                
-                # Obtener tamaño real de la página (en puntos)
-                page_rect = page.rect
-                page_width = page_rect.width
-                page_height = page_rect.height
-                
-                # Calcular matriz de transformación con zoom
-                mat = fitz.Matrix(self._zoom_level, self._zoom_level)
-                pix = page.get_pixmap(matrix=mat)
-                
-                # Crear imagen de la página
-                img = QImage(pix.samples, pix.width, pix.height, pix.stride, QImage.Format.Format_RGB888)
-                pixmap = QPixmap.fromImage(img)
-                
-                # Crear label para la página con tamaño real
-                page_label = QLabel()
-                page_label.setPixmap(pixmap)
-                page_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-                
-                # Fondo blanco para simular hoja de papel
-                page_label.setStyleSheet("""
-                    background-color: white;
-                    border: 1px solid #CCCCCC;
-                """)
-                
-                # Establecer tamaño exacto según la página y el zoom
-                render_width = int(page_width * self._zoom_level)
-                render_height = int(page_height * self._zoom_level)
-                page_label.setFixedSize(render_width, render_height)
-                
-                # Centrar en el layout
-                page_wrapper = QWidget()
-                page_wrapper_layout = QVBoxLayout(page_wrapper)
-                page_wrapper_layout.setContentsMargins(0, 5, 0, 5)
-                page_wrapper_layout.addWidget(page_label, 0, Qt.AlignmentFlag.AlignCenter)
-                
-                self.pdf_layout.addWidget(page_wrapper)
-            
-            # Actualizar info
-            self.page_info_label.setText(f"Páginas: {self._total_pages}")
-            
-        except Exception as e:
-            self.status_label.setText(f"Error al renderizar: {str(e)}")
-    
     def next_page(self):
-        """Ir a la siguiente página."""
-        if self._current_page < self._total_pages - 1:
+        """Ir a la siguiente página usando QPdfView."""
+        if self._pdf_document and self._current_page < self._total_pages - 1:
             self._current_page += 1
-            self._render_current_page()
+            # QPdfView usa el pageNavigator para navegar
+            nav = self.pdf_view.pageNavigator()
+            from PyQt6.QtCore import QPointF
+            nav.jump(self._current_page, QPointF(), None)
+            self.page_info_label.setText(f"Página: {self._current_page + 1} / {self._total_pages}")
     
     def previous_page(self):
-        """Ir a la página anterior."""
-        if self._current_page > 0:
+        """Ir a la página anterior usando QPdfView."""
+        if self._pdf_document and self._current_page > 0:
             self._current_page -= 1
-            self._render_current_page()
+            from PyQt6.QtCore import QPointF
+            nav = self.pdf_view.pageNavigator()
+            nav.jump(self._current_page, QPointF(), None)
+            self.page_info_label.setText(f"Página: {self._current_page + 1} / {self._total_pages}")
     
     def zoom_in(self):
-        """Acercar."""
-        self._zoom_level = min(3.0, self._zoom_level + 0.25)
-        self.zoom_info_label.setText(f"Zoom: {int(self._zoom_level * 100)}%")
-        if self._pdf_document:
-            self._render_current_page()
-        elif self.document_type == "blank":
-            self.page_label.setPixmap(self._create_blank_page())
+        """Acercar usando QPdfView."""
+        if hasattr(self, 'pdf_view') and self.pdf_view:
+            current_zoom = self.pdf_view.zoomFactor()
+            new_zoom = min(3.0, current_zoom + 0.25)
+            self.pdf_view.setZoomFactor(new_zoom)
+            self.zoom_info_label.setText(f"Zoom: {int(new_zoom * 100)}%")
+            self._set_temp_cursor(Qt.CursorShape.SizeVerCursor)
     
     def zoom_out(self):
-        """Alejar."""
-        self._zoom_level = max(0.25, self._zoom_level - 0.25)
-        self.zoom_info_label.setText(f"Zoom: {int(self._zoom_level * 100)}%")
-        if self._pdf_document:
-            self._render_current_page()
-        elif self.document_type == "blank":
-            self.page_label.setPixmap(self._create_blank_page())
+        """Alejar usando QPdfView."""
+        if hasattr(self, 'pdf_view') and self.pdf_view:
+            current_zoom = self.pdf_view.zoomFactor()
+            new_zoom = max(0.25, current_zoom - 0.25)
+            self.pdf_view.setZoomFactor(new_zoom)
+            self.zoom_info_label.setText(f"Zoom: {int(new_zoom * 100)}%")
+            self._set_temp_cursor(Qt.CursorShape.SizeVerCursor)
     
     def _setup_ui(self):
         main_layout = QVBoxLayout(self)
@@ -677,38 +574,38 @@ class EditorWindow(QFrame):
         layout = QVBoxLayout(panel)
         layout.setContentsMargins(10, 10, 10, 10)
         
-        # Área de scroll para el PDF
-        self.pdf_scroll_area = QScrollArea()
-        self.pdf_scroll_area.setObjectName("pdfScrollArea")
-        self.pdf_scroll_area.setWidgetResizable(True)
-        self.pdf_scroll_area.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.pdf_scroll_area.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+        # Visor de PDF profesional usando QPdfView
+        self.pdf_view = QPdfView()
+        self.pdf_view.setObjectName("pdfView")
+        self.pdf_view.setZoomMode(QPdfView.ZoomMode.FitToWidth)
+        self.pdf_view.setPageMode(QPdfView.PageMode.MultiPage)
         
-        # Widget contenedor para las páginas del PDF
-        self.pdf_container = QWidget()
-        self.pdf_layout = QVBoxLayout(self.pdf_container)
-        self.pdf_layout.setSpacing(10)
-        self.pdf_layout.setContentsMargins(0, 0, 0, 0)
+        # Crear documento PDF
+        self._pdf_document = QPdfDocument()
+        self.pdf_view.setDocument(self._pdf_document)
         
-        # Label para mostrar la página actual
-        self.page_label = QLabel()
-        self.page_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.page_label.setObjectName("pdfPageLabel")
+        # Conectar señales de navegación
+        self._pdf_document.statusChanged.connect(self._on_pdf_loaded)
         
-        self.pdf_layout.addWidget(self.page_label)
-        self.pdf_scroll_area.setWidget(self.pdf_container)
-        
-        layout.addWidget(self.pdf_scroll_area, 1)
-        
-        # Label de info cuando no hay documento
+        # Ocultar info label inicialmente
         self.info_label = QLabel("Seleccione un archivo PDF para comenzar a trabajar")
         self.info_label.setObjectName("editorInfo")
         self.info_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.info_label.setVisible(True)
         
-        # Ocultar área PDF inicialmente
-        self.pdf_scroll_area.setVisible(False)
+        # El visor PDF está siempre visible pero vacío
+        self.pdf_view.setVisible(True)
+        
+        layout.addWidget(self.pdf_view, 1)
         
         return panel
+    
+    def _on_pdf_loaded(self):
+        """Se ejecuta cuando el PDF se carga correctamente."""
+        if self._pdf_document.status() == QPdfDocument.Status.Ready:
+            self._total_pages = self._pdf_document.pageCount()
+            self.page_info_label.setText(f"Páginas: {self._total_pages}")
+            self.status_label.setText(f"PDF cargado: {self._total_pages} páginas")
     
     def _create_bottom_panel(self):
         panel = QFrame()
@@ -1094,13 +991,9 @@ class EditorWindowContainer(QDialog):
     
     def _on_zoom_reset(self):
         """Maneja el atajo de zoom reset."""
-        if self.editor:
-            self.editor._zoom_level = 1.0
-            self.editor.zoom_info_label.setText(f"Zoom: {int(self.editor._zoom_level * 100)}%")
-            if self.editor._pdf_document:
-                self.editor._render_current_page()
-            elif self.editor.document_type == "blank":
-                self.editor.page_label.setPixmap(self.editor._create_blank_page())
+        if self.editor and hasattr(self.editor, 'pdf_view'):
+            self.editor.pdf_view.setZoomFactor(1.0)
+            self.editor.zoom_info_label.setText("Zoom: 100%")
             self.editor._set_temp_cursor(Qt.CursorShape.SizeVerCursor)
     
     def _on_next_page(self):
