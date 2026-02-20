@@ -254,6 +254,9 @@ class EditorWindow(QFrame):
             key = event.key()
             modifiers = event.modifiers()
             
+            # Debug: print key press
+            print(f"[EditorWindow eventFilter] Key: {key}, Modifiers: {modifiers}")
+            
             # Ctrl + = o Ctrl + + (acercar)
             if modifiers == Qt.KeyboardModifier.ControlModifier and (key == Qt.Key.Key_Equal or key == Qt.Key.Key_Plus):
                 self.zoom_in()
@@ -588,6 +591,9 @@ class EditorWindow(QFrame):
         self._pdf_document = QPdfDocument(self.pdf_view)
         self.pdf_view.setDocument(self._pdf_document)
         
+        # Install event filter on the viewport to capture keyboard events
+        self.pdf_view.viewport().installEventFilter(self)
+        
         # Conectar señales de navegación
         self._pdf_document.statusChanged.connect(self._on_pdf_loaded)
         
@@ -846,8 +852,6 @@ class EditorWindowContainer(QDialog):
             key = event.key()
             modifiers = event.modifiers()
             
-            print(f"[DEBUG] Key pressed: {key}, modifiers: {modifiers}")
-            
             # Ctrl + = o Ctrl + + (acercar)
             if modifiers == Qt.KeyboardModifier.ControlModifier and (key == Qt.Key.Key_Equal or key == Qt.Key.Key_Plus):
                 self._on_zoom_in()
@@ -942,6 +946,12 @@ class EditorWindowContainer(QDialog):
     
     def _setup_keyboard_shortcuts(self):
         """Configura los atajos de teclado."""
+        # Install event filter on application to capture all keyboard events
+        from PyQt6.QtWidgets import QApplication
+        app = QApplication.instance()
+        if app:
+            app.installEventFilter(self)
+        
         # Ctrl + = (acercar)
         shortcut_zoom_in = QShortcut(QKeySequence("Ctrl+="), self)
         shortcut_zoom_in.activated.connect(self._on_zoom_in)
