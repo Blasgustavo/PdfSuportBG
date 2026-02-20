@@ -4,7 +4,7 @@ from PyQt6.QtWidgets import (
     QToolBar, QToolButton, QStatusBar, QDialog, QListWidget, QListWidgetItem
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QTimer
-from PyQt6.QtGui import QAction, QIcon, QPixmap, QImage, QKeyEvent, QCursor
+from PyQt6.QtGui import QAction, QIcon, QPixmap, QImage, QKeySequence, QShortcut
 from pathlib import Path
 from typing import Optional
 import fitz  # PyMuPDF
@@ -70,81 +70,6 @@ class EditorWindow(QFrame):
     def mark_as_saved(self):
         self._has_unsaved_changes = False
         self._update_window_title()
-    
-    def keyPressEvent(self, event: QKeyEvent):
-        """Captura eventos de teclado para atajos."""
-        key = event.key()
-        modifiers = event.modifiers()
-        
-        # Ctrl + = o Ctrl + + (acercar)
-        if modifiers == Qt.KeyboardModifier.ControlModifier and (key == Qt.Key.Key_Equal or key == Qt.Key.Key_Plus):
-            self.zoom_in()
-            self._set_temp_cursor(Qt.CursorShape.SizeVerCursor)
-            event.accept()
-            return
-        
-        # Ctrl + - (alejar)
-        if modifiers == Qt.KeyboardModifier.ControlModifier and key == Qt.Key.Key_Minus:
-            self.zoom_out()
-            self._set_temp_cursor(Qt.CursorShape.SizeVerCursor)
-            event.accept()
-            return
-        
-        # Ctrl + Right (siguiente página)
-        if modifiers == Qt.KeyboardModifier.ControlModifier and key == Qt.Key.Key_Right:
-            self.next_page()
-            self._set_temp_cursor(Qt.CursorShape.PointingHandCursor)
-            event.accept()
-            return
-        
-        # Ctrl + Left (página anterior)
-        if modifiers == Qt.KeyboardModifier.ControlModifier and key == Qt.Key.Key_Left:
-            self.previous_page()
-            self._set_temp_cursor(Qt.CursorShape.PointingHandCursor)
-            event.accept()
-            return
-        
-        # Ctrl + / o F1 (mostrar comandos)
-        if (modifiers == Qt.KeyboardModifier.ControlModifier and key == Qt.Key.Key_Slash) or key == Qt.Key.Key_F1:
-            self._show_commands_dialog()
-            event.accept()
-            return
-        
-        # Home (primera página)
-        if key == Qt.Key.Key_Home:
-            self._go_to_first_page()
-            self._set_temp_cursor(Qt.CursorShape.PointingHandCursor)
-            event.accept()
-            return
-        
-        # End (última página)
-        if key == Qt.Key.Key_End:
-            self._go_to_last_page()
-            self._set_temp_cursor(Qt.CursorShape.PointingHandCursor)
-            event.accept()
-            return
-        
-        # Ctrl + 0 (zoom 100%)
-        if modifiers == Qt.KeyboardModifier.ControlModifier and key == Qt.Key.Key_0:
-            self._zoom_level = 1.0
-            self.zoom_info_label.setText(f"Zoom: {int(self._zoom_level * 100)}%")
-            if self._pdf_document:
-                self._render_current_page()
-            elif self.document_type == "blank":
-                self.page_label.setPixmap(self._create_blank_page())
-            self._set_temp_cursor(Qt.CursorShape.SizeVerCursor)
-            event.accept()
-            return
-        
-        # Escape (cerrar diálogo de comandos si está abierto)
-        if key == Qt.Key.Key_Escape:
-            # Buscar y cerrar cualquier diálogo de comandos abierto
-            for widget in self.findChildren(QDialog, "commandsDialog"):
-                widget.close()
-            event.accept()
-            return
-        
-        super().keyPressEvent(event)
     
     def _set_temp_cursor(self, cursor_shape: Qt.CursorShape):
         """Cambia temporalmente el cursor y lo restaura después de 500ms."""
@@ -527,43 +452,50 @@ class EditorWindow(QFrame):
         layout.setContentsMargins(5, 20, 5, 20)
         layout.setSpacing(15)
         
-        btn_home = QPushButton("🏠")
+        btn_home = QPushButton("⌂")
         btn_home.setFixedSize(50, 50)
         btn_home.setToolTip("Inicio")
+        btn_home.setStyleSheet("font-size: 22px;")
         btn_home.clicked.connect(self._go_home)
         
-        btn_new = QPushButton("📄")
+        btn_new = QPushButton("⊞")
         btn_new.setFixedSize(50, 50)
         btn_new.setToolTip("Nuevo")
+        btn_new.setStyleSheet("font-size: 22px;")
         btn_new.clicked.connect(self._new_document)
         
         btn_open = QPushButton("📂")
         btn_open.setFixedSize(50, 50)
         btn_open.setToolTip("Abrir")
+        btn_open.setStyleSheet("font-size: 22px;")
         btn_open.clicked.connect(self._open_pdf)
         
         btn_save = QPushButton("💾")
         btn_save.setFixedSize(50, 50)
         btn_save.setToolTip("Guardar")
+        btn_save.setStyleSheet("font-size: 22px;")
         btn_save.clicked.connect(self._save_pdf)
         
         # Botones de navegación de páginas
         layout.addStretch()
         
-        self.btn_prev = QPushButton("◀")
+        self.btn_prev = QPushButton("⏮")
         self.btn_prev.setFixedSize(50, 40)
         self.btn_prev.setToolTip("Página anterior")
+        self.btn_prev.setStyleSheet("font-size: 18px;")
         self.btn_prev.clicked.connect(self.previous_page)
         
-        self.btn_next = QPushButton("▶")
+        self.btn_next = QPushButton("⏭")
         self.btn_next.setFixedSize(50, 40)
         self.btn_next.setToolTip("Página siguiente")
+        self.btn_next.setStyleSheet("font-size: 18px;")
         self.btn_next.clicked.connect(self.next_page)
         
         # Botón de modo lectura/edición
-        self.btn_mode = QPushButton("📖")
+        self.btn_mode = QPushButton("☰")
         self.btn_mode.setFixedSize(50, 40)
         self.btn_mode.setToolTip("Cambiar modo (Lectura/Escritura)")
+        self.btn_mode.setStyleSheet("font-size: 20px;")
         self.btn_mode.clicked.connect(self._toggle_mode)
         
         layout.addWidget(btn_home)
@@ -582,11 +514,13 @@ class EditorWindow(QFrame):
         """Alterna entre modo lectura y edición."""
         if self._current_mode == self.MODE_READ:
             self.set_mode_edit()
-            self.btn_mode.setText("✏️")
+            self.btn_mode.setText("✎")
+            self.btn_mode.setStyleSheet("font-size: 20px;")
             self.btn_mode.setToolTip("Modo Edición - Clic para cambiar a Lectura")
         else:
             self.set_mode_read()
-            self.btn_mode.setText("📖")
+            self.btn_mode.setText("☰")
+            self.btn_mode.setStyleSheet("font-size: 20px;")
             self.btn_mode.setToolTip("Modo Lectura - Clic para cambiar a Edición")
     
     def _create_ribbon_panel(self):
@@ -609,27 +543,27 @@ class EditorWindow(QFrame):
         ribbon_layout.setSpacing(20)
         
         file_section = self._create_ribbon_section("Archivo", [
-            ("📄", "Nuevo", self._new_document),
+            ("⊞", "Nuevo", self._new_document),
             ("📂", "Abrir", self._open_pdf),
             ("💾", "Guardar", self._save_pdf),
-            ("📑", "Exportar", self._export_pdf),
+            ("⤓", "Exportar", self._export_pdf),
         ])
         ribbon_layout.addWidget(file_section)
         
         edit_section = self._create_ribbon_section("Editar", [
-            ("✂️", "Cortar", self._cut),
-            ("📋", "Copiar", self._copy),
-            ("📝", "Pegar", self._paste),
-            ("↩️", "Deshacer", self._undo),
-            ("↪️", "Rehacer", self._redo),
+            ("✂", "Cortar", self._cut),
+            ("⎘", "Copiar", self._copy),
+            ("⎗", "Pegar", self._paste),
+            ("↶", "Deshacer", self._undo),
+            ("↷", "Rehacer", self._redo),
         ])
         ribbon_layout.addWidget(edit_section)
         
         view_section = self._create_ribbon_section("Ver", [
-            ("🔍+", "Acercar", self._zoom_in),
-            ("🔍-", "Alejar", self._zoom_out),
-            ("📄", "Página", self._view_page),
-            ("📑", "Todas", self._view_all),
+            ("⤧", "Acercar", self._zoom_in),
+            ("⤦", "Alejar", self._zoom_out),
+            ("▤", "Página", self._view_page),
+            ("⊟", "Todas", self._view_all),
         ])
         ribbon_layout.addWidget(view_section)
         
@@ -747,21 +681,27 @@ class EditorWindow(QFrame):
         layout.setContentsMargins(5, 20, 5, 20)
         layout.setSpacing(15)
         
-        btn_zoom_in = QPushButton("🔍+")
+        btn_zoom_in = QPushButton("⤧")
         btn_zoom_in.setFixedSize(50, 40)
-        btn_zoom_in.setToolTip("Acercar")
+        btn_zoom_in.setToolTip("Acercar (Ctrl+=)")
+        btn_zoom_in.setStyleSheet("font-size: 18px;")
+        btn_zoom_in.clicked.connect(self.zoom_in)
         
-        btn_zoom_out = QPushButton("🔍-")
+        btn_zoom_out = QPushButton("⤦")
         btn_zoom_out.setFixedSize(50, 40)
-        btn_zoom_out.setToolTip("Alejar")
+        btn_zoom_out.setToolTip("Alejar (Ctrl+-)")
+        btn_zoom_out.setStyleSheet("font-size: 18px;")
+        btn_zoom_out.clicked.connect(self.zoom_out)
         
-        btn_rotate = QPushButton("🔄")
+        btn_rotate = QPushButton("↻")
         btn_rotate.setFixedSize(50, 40)
         btn_rotate.setToolTip("Rotar")
+        btn_rotate.setStyleSheet("font-size: 18px;")
         
-        btn_tools = QPushButton("🔧")
+        btn_tools = QPushButton("⚙")
         btn_tools.setFixedSize(50, 40)
         btn_tools.setToolTip("Herramientas")
+        btn_tools.setStyleSheet("font-size: 18px;")
         
         layout.addWidget(btn_zoom_in)
         layout.addWidget(btn_zoom_out)
@@ -976,7 +916,102 @@ class EditorWindowContainer(QDialog):
         self.editor = EditorWindow(document_type=self.document_type, parent=self)
         layout.addWidget(self.editor, 1)
         
+        self._setup_keyboard_shortcuts()
+        
         self._center_window()
+    
+    def _setup_keyboard_shortcuts(self):
+        """Configura los atajos de teclado."""
+        # Ctrl + = (acercar)
+        shortcut_zoom_in = QShortcut(QKeySequence("Ctrl+="), self)
+        shortcut_zoom_in.activated.connect(self._on_zoom_in)
+        
+        # Ctrl + + (acercar alterno)
+        shortcut_zoom_in_alt = QShortcut(QKeySequence("Ctrl++"), self)
+        shortcut_zoom_in_alt.activated.connect(self._on_zoom_in)
+        
+        # Ctrl + - (alejar)
+        shortcut_zoom_out = QShortcut(QKeySequence("Ctrl+-"), self)
+        shortcut_zoom_out.activated.connect(self._on_zoom_out)
+        
+        # Ctrl + Right (siguiente página)
+        shortcut_next = QShortcut(QKeySequence("Ctrl+Right"), self)
+        shortcut_next.activated.connect(self._on_next_page)
+        
+        # Ctrl + Left (página anterior)
+        shortcut_prev = QShortcut(QKeySequence("Ctrl+Left"), self)
+        shortcut_prev.activated.connect(self._on_previous_page)
+        
+        # Ctrl + 0 (zoom 100%)
+        shortcut_zoom_reset = QShortcut(QKeySequence("Ctrl+0"), self)
+        shortcut_zoom_reset.activated.connect(self._on_zoom_reset)
+        
+        # Home (primera página)
+        shortcut_home = QShortcut(QKeySequence("Home"), self)
+        shortcut_home.activated.connect(self._on_first_page)
+        
+        # End (última página)
+        shortcut_end = QShortcut(QKeySequence("End"), self)
+        shortcut_end.activated.connect(self._on_last_page)
+        
+        # F1 o Ctrl + / (mostrar comandos)
+        shortcut_help = QShortcut(QKeySequence("F1"), self)
+        shortcut_help.activated.connect(self._on_show_commands)
+        
+        shortcut_help2 = QShortcut(QKeySequence("Ctrl+/"), self)
+        shortcut_help2.activated.connect(self._on_show_commands)
+    
+    def _on_zoom_in(self):
+        """Maneja el atajo de zoom in."""
+        if self.editor:
+            self.editor.zoom_in()
+            self.editor._set_temp_cursor(Qt.CursorShape.SizeVerCursor)
+    
+    def _on_zoom_out(self):
+        """Maneja el atajo de zoom out."""
+        if self.editor:
+            self.editor.zoom_out()
+            self.editor._set_temp_cursor(Qt.CursorShape.SizeVerCursor)
+    
+    def _on_zoom_reset(self):
+        """Maneja el atajo de zoom reset."""
+        if self.editor:
+            self.editor._zoom_level = 1.0
+            self.editor.zoom_info_label.setText(f"Zoom: {int(self.editor._zoom_level * 100)}%")
+            if self.editor._pdf_document:
+                self.editor._render_current_page()
+            elif self.editor.document_type == "blank":
+                self.editor.page_label.setPixmap(self.editor._create_blank_page())
+            self.editor._set_temp_cursor(Qt.CursorShape.SizeVerCursor)
+    
+    def _on_next_page(self):
+        """Maneja el atajo de siguiente página."""
+        if self.editor:
+            self.editor.next_page()
+            self.editor._set_temp_cursor(Qt.CursorShape.PointingHandCursor)
+    
+    def _on_previous_page(self):
+        """Maneja el atajo de página anterior."""
+        if self.editor:
+            self.editor.previous_page()
+            self.editor._set_temp_cursor(Qt.CursorShape.PointingHandCursor)
+    
+    def _on_first_page(self):
+        """Maneja el atajo de primera página."""
+        if self.editor:
+            self.editor._go_to_first_page()
+            self.editor._set_temp_cursor(Qt.CursorShape.PointingHandCursor)
+    
+    def _on_last_page(self):
+        """Maneja el atajo de última página."""
+        if self.editor:
+            self.editor._go_to_last_page()
+            self.editor._set_temp_cursor(Qt.CursorShape.PointingHandCursor)
+    
+    def _on_show_commands(self):
+        """Maneja el atajo de mostrar comandos."""
+        if self.editor:
+            self.editor._show_commands_dialog()
     
     def _on_editor_close_requested(self):
         self._confirm_close()
