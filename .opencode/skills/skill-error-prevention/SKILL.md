@@ -49,6 +49,21 @@ src/utils/error_prevention/
 | Signal loop | disconnect() en closeEvent |
 | Memory leak | Usar parent-child correctamente |
 | Null parent | Validar parent no es None |
+| `TypeError: not enough arguments` en QPdfView/QPdfDocument | **SIEMPRE pasar parent en el constructor**: `QPdfView(parent)` y `QPdfDocument(parent)` |
+| `AttributeError: 'NoneType' object has no attribute 'xxx'` | Usar `hasattr(obj, 'attr')` antes de acceder |
+| Event filter parameter mismatch | Usar nombres correctos: `eventFilter(obj, event)` no `eventFilter(a0, a1)` |
+| Signal not connected | Verificar que el widget esté inicializado antes de conectar |
+| QShortcut not working | Verificar que el widget tenga foco o usar eventFilter global |
+
+### Errores Comunes con QPdfView (PyQt6 6.10+)
+
+| Error | Solución |
+|-------|----------|
+| `TypeError: QPdfView(parent): not enough arguments` | Usar `QPdfView(parent_widget)` - **siempre requiere parent** |
+| `TypeError: QPdfDocument(parent): not enough arguments` | Usar `QPdfDocument(parent_view)` - **siempre requiere parent** |
+| Keyboard shortcuts not working | El widget debe tener foco; usar eventFilter o subclass con keyPressEvent |
+| `AttributeError: resetCachedContent` no existe | QPdfView no tiene este método, usar `update()` y `repaint()` |
+| Zoom not updating visual | Forzar repintado con `view.update(); view.repaint()` |
 
 ### Orquestación
 
