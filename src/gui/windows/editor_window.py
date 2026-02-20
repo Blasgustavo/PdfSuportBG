@@ -162,7 +162,8 @@ class EditorWindow(QFrame):
             self._current_page = 0
             nav = self.pdf_view.pageNavigator()
             from PyQt6.QtCore import QPointF
-            nav.jump(0, QPointF(), None)
+            current_zoom = self.pdf_view.zoomFactor()
+            nav.jump(0, QPointF(), current_zoom)
             self.page_info_label.setText(f"Página: 1 / {self._total_pages}")
             self.status_label.setText("Primera página")
             self._set_temp_cursor(Qt.CursorShape.PointingHandCursor)
@@ -173,7 +174,8 @@ class EditorWindow(QFrame):
             self._current_page = self._total_pages - 1
             nav = self.pdf_view.pageNavigator()
             from PyQt6.QtCore import QPointF
-            nav.jump(self._current_page, QPointF(), None)
+            current_zoom = self.pdf_view.zoomFactor()
+            nav.jump(self._current_page, QPointF(), current_zoom)
             self.page_info_label.setText(f"Página: {self._total_pages} / {self._total_pages}")
             self.status_label.setText(f"Página {self._total_pages}")
             self._set_temp_cursor(Qt.CursorShape.PointingHandCursor)
@@ -410,11 +412,12 @@ class EditorWindow(QFrame):
         """Ir a la siguiente página usando QPdfView."""
         if self._pdf_document and self._current_page < self._total_pages - 1:
             self._current_page += 1
-            # QPdfView usa el pageNavigator para navegar
             nav = self.pdf_view.pageNavigator()
             from PyQt6.QtCore import QPointF
-            nav.jump(self._current_page, QPointF(), None)
+            current_zoom = self.pdf_view.zoomFactor()
+            nav.jump(self._current_page, QPointF(), current_zoom)
             self.page_info_label.setText(f"Página: {self._current_page + 1} / {self._total_pages}")
+            self._set_temp_cursor(Qt.CursorShape.PointingHandCursor)
     
     def previous_page(self):
         """Ir a la página anterior usando QPdfView."""
@@ -422,8 +425,10 @@ class EditorWindow(QFrame):
             self._current_page -= 1
             from PyQt6.QtCore import QPointF
             nav = self.pdf_view.pageNavigator()
-            nav.jump(self._current_page, QPointF(), None)
+            current_zoom = self.pdf_view.zoomFactor()
+            nav.jump(self._current_page, QPointF(), current_zoom)
             self.page_info_label.setText(f"Página: {self._current_page + 1} / {self._total_pages}")
+            self._set_temp_cursor(Qt.CursorShape.PointingHandCursor)
     
     def zoom_in(self):
         """Acercar usando QPdfView."""
@@ -658,7 +663,7 @@ class EditorWindow(QFrame):
         self.pdf_view = PDFViewerWidget(panel)
         self.pdf_view.setObjectName("pdfView")
         self.pdf_view.setZoomMode(QPdfView.ZoomMode.FitToWidth)
-        self.pdf_view.setPageMode(QPdfView.PageMode.MultiPage)
+        self.pdf_view.setPageMode(QPdfView.PageMode.SinglePage)
         
         # Conectar señales de atajos de teclado
         self.pdf_view.zoom_in_requested.connect(self.zoom_in)
