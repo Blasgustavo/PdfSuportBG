@@ -3,7 +3,7 @@ from PyQt6.QtWidgets import (
     QFrame, QFileDialog, QSplitter,
     QToolBar, QToolButton, QStatusBar, QDialog, QListWidget, QListWidgetItem
 )
-from PyQt6.QtCore import Qt, pyqtSignal, QTimer, QEvent
+from PyQt6.QtCore import Qt, pyqtSignal, QTimer, QEvent, QMargins
 from PyQt6.QtGui import QAction, QIcon, QKeySequence, QShortcut, QKeyEvent
 from PyQt6.QtPdf import QPdfDocument
 from PyQt6.QtPdfWidgets import QPdfView
@@ -436,6 +436,9 @@ class EditorWindow(QFrame):
             current_zoom = self.pdf_view.zoomFactor()
             new_zoom = min(3.0, current_zoom + 0.25)
             self.pdf_view.setZoomFactor(new_zoom)
+            # Forzar repintado
+            self.pdf_view.update()
+            self.pdf_view.repaint()
             self.zoom_info_label.setText(f"Zoom: {int(new_zoom * 100)}%")
             self._set_temp_cursor(Qt.CursorShape.SizeVerCursor)
     
@@ -445,6 +448,9 @@ class EditorWindow(QFrame):
             current_zoom = self.pdf_view.zoomFactor()
             new_zoom = max(0.25, current_zoom - 0.25)
             self.pdf_view.setZoomFactor(new_zoom)
+            # Forzar repintado
+            self.pdf_view.update()
+            self.pdf_view.repaint()
             self.zoom_info_label.setText(f"Zoom: {int(new_zoom * 100)}%")
             self._set_temp_cursor(Qt.CursorShape.SizeVerCursor)
     
@@ -452,6 +458,9 @@ class EditorWindow(QFrame):
         """Restablecer zoom al 100%."""
         if hasattr(self, 'pdf_view') and self.pdf_view:
             self.pdf_view.setZoomFactor(1.0)
+            # Forzar repintado
+            self.pdf_view.update()
+            self.pdf_view.repaint()
             self.zoom_info_label.setText("Zoom: 100%")
             self._set_temp_cursor(Qt.CursorShape.SizeVerCursor)
     
@@ -662,8 +671,15 @@ class EditorWindow(QFrame):
         # Visor de PDF profesional usando PDFViewerWidget personalizado
         self.pdf_view = PDFViewerWidget(panel)
         self.pdf_view.setObjectName("pdfView")
-        self.pdf_view.setZoomMode(QPdfView.ZoomMode.FitToWidth)
+        
+        # Configurar modo de zoom Custom con 100% inicial
+        self.pdf_view.setZoomMode(QPdfView.ZoomMode.Custom)
+        self.pdf_view.setZoomFactor(1.0)  # 100% zoom inicial
         self.pdf_view.setPageMode(QPdfView.PageMode.SinglePage)
+        
+        # Configurar márgenes y espaciado
+        self.pdf_view.setDocumentMargins(QMargins(30, 30, 30, 30))  # Márgenes alrededor del documento
+        self.pdf_view.setPageSpacing(15)  # Espaciado entre páginas en MultiPage
         
         # Conectar señales de atajos de teclado
         self.pdf_view.zoom_in_requested.connect(self.zoom_in)
