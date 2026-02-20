@@ -123,8 +123,27 @@ class WhichKeyPopup(QDialog):
                 "Page Down": "Página Abajo",
                 "Space": "Scroll Down",
                 "Shift + Space": "Scroll Up",
+                "Ctrl + \\": "Dividir Vertical",
+                "Alt + S": "Dividir Horizontal",
+                "Ctrl + W": "Cerrar Split",
+                "Alt + Shift + →": "Siguiente Vista",
+                "Alt + Shift + ←": "Vista Anterior",
                 "F1": "Mostrar Comandos",
                 "F8": "Mostrar/Ocultar Paneles",
+            }
+        else:  # modo edición
+            shortcuts = {
+                "Ctrl + Z": "Deshacer (Undo)",
+                "Ctrl + Y": "Rehacer (Redo)",
+                "Ctrl + S": "Guardar",
+                "Ctrl + C": "Copiar",
+                "Ctrl + V": "Pegar",
+                "Ctrl + X": "Cortar",
+                "Delete": "Eliminar Selección",
+                "Ctrl + A": "Seleccionar Todo",
+                "Ctrl + D": "Duplicar Selección",
+                "Escape": "Salir del Modo Edición",
+                "Ctrl + E": "Modo Vista",
             }
         else:  # modo edición
             shortcuts = {
@@ -206,6 +225,13 @@ class PDFViewerWidget(QPdfView):
     page_up_requested = pyqtSignal()
     page_down_requested = pyqtSignal()
     help_requested = pyqtSignal()
+    
+    # Split/Window signals
+    split_horizontal_requested = pyqtSignal()  # Ctrl + \ (vertical split)
+    split_vertical_requested = pyqtSignal()    # Alt + S (horizontal split)
+    close_split_requested = pyqtSignal()        # Ctrl + W
+    next_split_requested = pyqtSignal()        # Alt + Shift + Right
+    prev_split_requested = pyqtSignal()         # Alt + Shift + Left
     
     # Edit mode signals
     undo_requested = pyqtSignal()
@@ -367,6 +393,42 @@ class PDFViewerWidget(QPdfView):
         # Ctrl + E (Switch to view mode)
         if modifiers == Qt.KeyboardModifier.ControlModifier and key == Qt.Key.Key_E:
             self.switch_to_view_mode_requested.emit()
+            return
+        
+        # ===== SPLIT / WINDOW SHORTCUTS =====
+        # Ctrl + \ (Vertical split - like Word)
+        if modifiers == Qt.KeyboardModifier.ControlModifier and key == Qt.Key.Key_Backslash:
+            self.split_horizontal_requested.emit()
+            return
+        
+        # Alt + S (Horizontal split)
+        if modifiers == Qt.KeyboardModifier.AltModifier and key == Qt.Key.Key_S:
+            self.split_vertical_requested.emit()
+            return
+        
+        # Ctrl + W (Close current split)
+        if modifiers == Qt.KeyboardModifier.ControlModifier and key == Qt.Key.Key_W:
+            self.close_split_requested.emit()
+            return
+        
+        # Alt + Shift + Right (Next split)
+        if modifiers == (Qt.KeyboardModifier.AltModifier | Qt.KeyboardModifier.ShiftModifier) and key == Qt.Key.Key_Right:
+            self.next_split_requested.emit()
+            return
+        
+        # Alt + Shift + Left (Previous split)
+        if modifiers == (Qt.KeyboardModifier.AltModifier | Qt.KeyboardModifier.ShiftModifier) and key == Qt.Key.Key_Left:
+            self.prev_split_requested.emit()
+            return
+        
+        # Alt + Shift + Up (Split above)
+        if modifiers == (Qt.KeyboardModifier.AltModifier | Qt.KeyboardModifier.ShiftModifier) and key == Qt.Key.Key_Up:
+            self.prev_split_requested.emit()
+            return
+        
+        # Alt + Shift + Down (Split below)
+        if modifiers == (Qt.KeyboardModifier.AltModifier | Qt.KeyboardModifier.ShiftModifier) and key == Qt.Key.Key_Down:
+            self.next_split_requested.emit()
             return
         
         # Escape - close dialogs
@@ -707,6 +769,182 @@ class EditorWindow(QFrame):
         """Eliminar."""
         self.status_label.setText("Eliminar - Funcionalidad en desarrollo")
     
+    # ===== SPLIT METHODS =====
+    def _on_split_horizontal(self):
+        """Crear split vertical (dividir pane actual verticalmente)."""
+        self._create_split(orientation="vertical")
+    
+    def _on_split_vertical(self):
+        """Crear split horizontal (dividir pane actual horizontalmente)."""
+        self._create_split(orientation="horizontal")
+    
+    def _create_split(self, orientation: str = "vertical"):
+        """Crear un nuevo split del documento.
+        
+        Args:
+            orientation: "vertical" para dividir en paneles izquierdo/derecho,
+                       "horizontal" para dividir en paneles arriba/abajo
+        """
+        # Máximo 4 splits (2x2)
+        if len(self._splits) >= 4:
+            self.status_label.setText("Máximo 4 vistas permitidas")
+            return
+        
+        # Verificar que tenemos un documento cargado
+        if not self._pdf_document or self._total_pages == 0:
+            self.status_label.setText("Carga un documento primero")
+            return
+        
+        try:
+            # Crear nuevo visor PDF
+            new_viewer = PDFViewerWidget(self.center_panel)
+            new_viewer.setObjectName(f"pdfView_split_{len(self._splits)}")
+            new_viewer.setZoomMode(QPdfView.ZoomMode.Custom)
+            new_viewer.setZoomFactor(self.pdf_view.zoomFactor())
+            new_viewer.setPageMode(QPdfView.PageMode.MultiPage)
+            
+            # Configurar documento
+            new_viewer.setDocument(self._pdf_document)
+            
+            # Conectar señales de atajos
+            new_viewer.zoom_in_requested.connect(self._on_split_zoom_in)
+            new_viewer.zoom_out_requested.connect(self._on_split_zoom_out)
+            new_viewer.next_page_requested.connect(self._on_split_next_page)
+            new_viewer.previous_page_requested.connect(self._on_split_prev_page)
+            new_viewer.help_requested.connect(self._show_commands_dialog)
+            
+            # Agregar a la lista de splits
+            self._splits.append(new_viewer)
+            
+            # Reorganizar los splitters
+            self._reorganize_splits(orientation)
+            
+            self.status_label.setText(f"Vista {len(self._splits)} - Split {orientation}")
+            
+        except Exception as e:
+            self.status_label.setText(f"Error al crear split: {str(e)}")
+    
+    def _reorganize_splits(self, new_orientation: str = "vertical"):
+        """Reorganizar los splits en un layout de grilla."""
+        if not self._splits:
+            return
+        
+        # Limpiar layout actual
+        for i in reversed(range(self.center_layout.count())):
+            item = self.center_layout.itemAt(i)
+            if item and item.widget():
+                self.center_layout.removeWidget(item.widget())
+        
+        if len(self._splits) == 1:
+            # Solo un split, mostrar normalmente
+            self.center_layout.addWidget(self._splits[0], 1)
+            return
+        
+        # Crear splitters según la cantidad de vistas
+        if len(self._splits) == 2:
+            if new_orientation == "vertical":
+                splitter = QSplitter(Qt.Orientation.Horizontal)
+            else:
+                splitter = QSplitter(Qt.Orientation.Vertical)
+            
+            for split_view in self._splits:
+                splitter.addWidget(split_view)
+            
+            self.center_layout.addWidget(splitter, 1)
+        
+        elif len(self._splits) == 3 or len(self._splits) == 4:
+            # Crear grilla 2x2
+            top_splitter = QSplitter(Qt.Orientation.Horizontal)
+            bottom_splitter = QSplitter(Qt.Orientation.Horizontal)
+            
+            if len(self._splits) >= 1:
+                top_splitter.addWidget(self._splits[0])
+            if len(self._splits) >= 2:
+                top_splitter.addWidget(self._splits[1])
+            if len(self._splits) >= 3:
+                bottom_splitter.addWidget(self._splits[2])
+            if len(self._splits) >= 4:
+                bottom_splitter.addWidget(self._splits[3])
+            
+            main_splitter = QSplitter(Qt.Orientation.Vertical)
+            main_splitter.addWidget(top_splitter)
+            main_splitter.addWidget(bottom_splitter)
+            
+            self.center_layout.addWidget(main_splitter, 1)
+    
+    def _on_split_zoom_in(self):
+        """Zoom in en todos los splits."""
+        for split_view in self._splits:
+            current_zoom = split_view.zoomFactor()
+            new_zoom = min(3.0, current_zoom + 0.25)
+            split_view.setZoomFactor(new_zoom)
+        self.zoom_info_label.setText(f"Zoom: {int(self.pdf_view.zoomFactor() * 100)}%")
+    
+    def _on_split_zoom_out(self):
+        """Zoom out en todos los splits."""
+        for split_view in self._splits:
+            current_zoom = split_view.zoomFactor()
+            new_zoom = max(0.25, current_zoom - 0.25)
+            split_view.setZoomFactor(new_zoom)
+        self.zoom_info_label.setText(f"Zoom: {int(self.pdf_view.zoomFactor() * 100)}%")
+    
+    def _on_split_next_page(self):
+        """Siguiente página en todos los splits."""
+        for split_view in self._splits:
+            nav = split_view.pageNavigator()
+            from PyQt6.QtCore import QPointF
+            current = nav.currentPage()
+            if current < self._total_pages - 1:
+                nav.jump(current + 1, QPointF(), split_view.zoomFactor())
+    
+    def _on_split_prev_page(self):
+        """Página anterior en todos los splits."""
+        for split_view in self._splits:
+            nav = split_view.pageNavigator()
+            from PyQt6.QtCore import QPointF
+            current = nav.currentPage()
+            if current > 0:
+                nav.jump(current - 1, QPointF(), split_view.zoomFactor())
+    
+    def _on_close_split(self):
+        """Cerrar el split actual."""
+        if not self._splits:
+            self.status_label.setText("No hay splits para cerrar")
+            return
+        
+        # Cerrar el último split
+        split_to_close = self._splits.pop()
+        split_to_close.deleteLater()
+        
+        # Reorganizar los restantes
+        if self._splits:
+            self._reorganize_splits()
+            self.status_label.setText(f"Splits restantes: {len(self._splits)}")
+        else:
+            # Mostrar el visor original
+            self.center_layout.addWidget(self.pdf_view, 1)
+            self.status_label.setText("Split cerrado")
+    
+    def _on_next_split(self):
+        """Moverse al siguiente split."""
+        if not self._splits:
+            return
+        
+        self._current_split_index = (self._current_split_index + 1) % len(self._splits)
+        if self._splits:
+            self._splits[self._current_split_index].setFocus()
+        self.status_label.setText(f"Vista {self._current_split_index + 1} de {len(self._splits)}")
+    
+    def _on_prev_split(self):
+        """Moverse al split anterior."""
+        if not self._splits:
+            return
+        
+        self._current_split_index = (self._current_split_index - 1) % len(self._splits)
+        if self._splits:
+            self._splits[self._current_split_index].setFocus()
+        self.status_label.setText(f"Vista {self._current_split_index + 1} de {len(self._splits)}")
+    
     def _update_window_title(self):
         if hasattr(self, 'file_name_label'):
             title = self.file_name_label.text()
@@ -912,12 +1150,12 @@ class EditorWindow(QFrame):
         content_splitter.addWidget(self.left_panel)
         
         center_container = QWidget()
-        center_layout = QVBoxLayout(center_container)
-        center_layout.setContentsMargins(0, 0, 0, 0)
-        center_layout.setSpacing(0)
+        self.center_layout = QVBoxLayout(center_container)
+        self.center_layout.setContentsMargins(0, 0, 0, 0)
+        self.center_layout.setSpacing(0)
         
         self.center_panel = self._create_center_panel()
-        center_layout.addWidget(self.center_panel, 8)
+        self.center_layout.addWidget(self.center_panel, 8)
         
         self.bottom_panel = self._create_bottom_panel()
         center_layout.addWidget(self.bottom_panel, 1)
@@ -1147,6 +1385,17 @@ class EditorWindow(QFrame):
         self.pdf_view.delete_requested.connect(self._on_delete)
         self.pdf_view.save_requested.connect(self._save_pdf)
         self.pdf_view.switch_to_view_mode_requested.connect(self.set_mode_read)
+        
+        # Split/Window signals
+        self.pdf_view.split_horizontal_requested.connect(self._on_split_horizontal)
+        self.pdf_view.split_vertical_requested.connect(self._on_split_vertical)
+        self.pdf_view.close_split_requested.connect(self._on_close_split)
+        self.pdf_view.next_split_requested.connect(self._on_next_split)
+        self.pdf_view.prev_split_requested.connect(self._on_prev_split)
+        
+        # Inicializar lista de splitters
+        self._splits: List[PDFViewerWidget] = []
+        self._current_split_index = 0
         
         # Crear documento PDF
         self._pdf_document = QPdfDocument(self.pdf_view)
