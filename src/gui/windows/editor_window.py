@@ -3,7 +3,7 @@ from PyQt6.QtWidgets import (
     QFrame, QFileDialog, QScrollArea, QSplitter, QSizePolicy,
     QToolBar, QToolButton, QStatusBar, QDialog, QListWidget, QListWidgetItem
 )
-from PyQt6.QtCore import Qt, pyqtSignal, QTimer
+from PyQt6.QtCore import Qt, pyqtSignal, QTimer, QEvent
 from PyQt6.QtGui import QAction, QIcon, QPixmap, QImage, QKeySequence, QShortcut
 from pathlib import Path
 from typing import Optional
@@ -36,6 +36,9 @@ class EditorWindow(QFrame):
         # Cursor timer para restaurar cursor
         self._cursor_timer = QTimer()
         self._cursor_timer.timeout.connect(self._restore_cursor)
+        
+        # Install event filter for keyboard shortcuts
+        self.installEventFilter(self)
         
         self._setup_ui()
         
@@ -228,6 +231,66 @@ class EditorWindow(QFrame):
         
         # Por defecto siempre modo lectura
         self.set_mode_read()
+    
+    def eventFilter(self, obj, event):
+        """Captura eventos de teclado para los atajos."""
+        if event.type() == QEvent.Type.KeyPress:
+            key = event.key()
+            modifiers = event.modifiers()
+            
+            # Ctrl + = o Ctrl + + (acercar)
+            if modifiers == Qt.KeyboardModifier.ControlModifier and (key == Qt.Key.Key_Equal or key == Qt.Key.Key_Plus):
+                self.zoom_in()
+                self._set_temp_cursor(Qt.CursorShape.SizeVerCursor)
+                return True
+            
+            # Ctrl + - (alejar)
+            if modifiers == Qt.KeyboardModifier.ControlModifier and key == Qt.Key.Key_Minus:
+                self.zoom_out()
+                self._set_temp_cursor(Qt.CursorShape.SizeVerCursor)
+                return True
+            
+            # Ctrl + Right (siguiente página)
+            if modifiers == Qt.KeyboardModifier.ControlModifier and key == Qt.Key.Key_Right:
+                self.next_page()
+                self._set_temp_cursor(Qt.CursorShape.PointingHandCursor)
+                return True
+            
+            # Ctrl + Left (página anterior)
+            if modifiers == Qt.KeyboardModifier.ControlModifier and key == Qt.Key.Key_Left:
+                self.previous_page()
+                self._set_temp_cursor(Qt.CursorShape.PointingHandCursor)
+                return True
+            
+            # Ctrl + 0 (zoom 100%)
+            if modifiers == Qt.KeyboardModifier.ControlModifier and key == Qt.Key.Key_0:
+                self._zoom_level = 1.0
+                self.zoom_info_label.setText(f"Zoom: {int(self._zoom_level * 100)}%")
+                if self._pdf_document:
+                    self._render_current_page()
+                elif self.document_type == "blank":
+                    self.page_label.setPixmap(self._create_blank_page())
+                self._set_temp_cursor(Qt.CursorShape.SizeVerCursor)
+                return True
+            
+            # Home (primera página)
+            if key == Qt.Key.Key_Home:
+                self._go_to_first_page()
+                self._set_temp_cursor(Qt.CursorShape.PointingHandCursor)
+                return True
+            
+            # End (última página)
+            if key == Qt.Key.Key_End:
+                self._go_to_last_page()
+                self._set_temp_cursor(Qt.CursorShape.PointingHandCursor)
+                return True
+            
+            # F1 o Ctrl + / (mostrar comandos)
+            if key == Qt.Key.Key_F1 or (modifiers == Qt.KeyboardModifier.ControlModifier and key == Qt.Key.Key_Slash):
+                self._show_commands_dialog()
+                return True
+        
+        return super().eventFilter(obj, event)
     
     def _render_blank_document(self):
         """Renderiza un documento en blanco."""
@@ -857,6 +920,9 @@ class EditorWindowContainer(QDialog):
         self.document_type = document_type
         self.file_path = file_path
         
+        # Install event filter for keyboard shortcuts
+        self.installEventFilter(self)
+        
         # Set window icon
         icon_path = Path(__file__).parent.parent.parent / "assets" / "icons" / "icono.png"
         if not icon_path.exists():
@@ -872,6 +938,56 @@ class EditorWindowContainer(QDialog):
             self.editor.close_requested.connect(self._on_editor_close_requested)
             if file_path:
                 self.editor.load_file(file_path)
+    
+    def eventFilter(self, obj, event):
+        """Captura eventos de teclado para los atajos."""
+        if event.type() == QEvent.Type.KeyPress:
+            key = event.key()
+            modifiers = event.modifiers()
+            
+            print(f"[DEBUG] Key pressed: {key}, modifiers: {modifiers}")
+            
+            # Ctrl + = o Ctrl + + (acercar)
+            if modifiers == Qt.KeyboardModifier.ControlModifier and (key == Qt.Key.Key_Equal or key == Qt.Key.Key_Plus):
+                self._on_zoom_in()
+                return True
+            
+            # Ctrl + - (alejar)
+            if modifiers == Qt.KeyboardModifier.ControlModifier and key == Qt.Key.Key_Minus:
+                self._on_zoom_out()
+                return True
+            
+            # Ctrl + Right (siguiente página)
+            if modifiers == Qt.KeyboardModifier.ControlModifier and key == Qt.Key.Key_Right:
+                self._on_next_page()
+                return True
+            
+            # Ctrl + Left (página anterior)
+            if modifiers == Qt.KeyboardModifier.ControlModifier and key == Qt.Key.Key_Left:
+                self._on_previous_page()
+                return True
+            
+            # Ctrl + 0 (zoom 100%)
+            if modifiers == Qt.KeyboardModifier.ControlModifier and key == Qt.Key.Key_0:
+                self._on_zoom_reset()
+                return True
+            
+            # Home (primera página)
+            if key == Qt.Key.Key_Home:
+                self._on_first_page()
+                return True
+            
+            # End (última página)
+            if key == Qt.Key.Key_End:
+                self._on_last_page()
+                return True
+            
+            # F1 o Ctrl + / (mostrar comandos)
+            if key == Qt.Key.Key_F1 or (modifiers == Qt.KeyboardModifier.ControlModifier and key == Qt.Key.Key_Slash):
+                self._on_show_commands()
+                return True
+        
+        return super().eventFilter(obj, event)
     
     def _setup_ui(self):
         layout = QVBoxLayout(self)
@@ -915,6 +1031,9 @@ class EditorWindowContainer(QDialog):
         
         self.editor = EditorWindow(document_type=self.document_type, parent=self)
         layout.addWidget(self.editor, 1)
+        
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+        self.editor.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         
         self._setup_keyboard_shortcuts()
         
