@@ -201,13 +201,20 @@ class ThemeManager:
 
     @property
     def font_size(self) -> int:
-        return self._font_size
+        size = self._font_size
+        if size is None or not isinstance(size, int) or size < 1:
+            return 12
+        return size
 
     def get_font(self, size: int = None, weight: str = "") -> str:
-        size = size or self._font_size
+        if size is None or not isinstance(size, int) or size < 1:
+            size = self._font_size
+        if size is None or not isinstance(size, int) or size < 1:
+            size = 12
+        font_family = self._font_family if self._font_family else "Segoe UI"
         if weight:
-            return f"{self._font_family} {size} {weight}"
-        return f"{self._font_family} {size}"
+            return f"{font_family} {size} {weight}"
+        return f"{font_family} {size}"
 
     def get_qcolor(self, key: str):
         from PyQt6.QtGui import QColor
@@ -307,7 +314,7 @@ class ThemeManager:
 
     def set_font(self, font_family: str, font_size: int = None):
         self._font_family = font_family
-        if font_size:
+        if font_size is not None and isinstance(font_size, int) and font_size > 0:
             self._font_size = font_size
         self.emit_change()
 

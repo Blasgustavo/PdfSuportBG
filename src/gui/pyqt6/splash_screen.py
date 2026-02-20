@@ -154,11 +154,12 @@ class AnimatedSplash(QSplashScreen):
         else:
             # Logo de texto si no hay imagen
             pulse_scale = 1.0 + math.sin(self._pulse) * 0.05
+            font_size = max(1, int(48 * pulse_scale))  # Ensure at least 1
             
             glow_color = QColor("#F6993F")
             glow_color.setAlpha(50)
             painter.setPen(glow_color)
-            painter.setFont(QFont("Segoe UI", int(48 * pulse_scale), QFont.Weight.Bold))
+            painter.setFont(QFont("Segoe UI", font_size, QFont.Weight.Bold))
             rect = QRectF(0, 100, self._width, 60)
             painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, "X")
     

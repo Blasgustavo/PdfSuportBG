@@ -27,7 +27,11 @@ pytest -k "test_name"            # Run tests matching pattern
 
 ### Building Executable
 ```bash
-pyinstaller --onefile --windowed --icon=assets/icons/icono.png src/main.py
+# Compilar con icono
+pyinstaller --onefile --windowed --icon=assets/icons/icono.png --add-data "assets;assets" --name "XebecPDF" src/main.py
+
+# O versión con console (para debugging)
+pyinstaller --onefile --console --icon=assets/icons/icono.png --add-data "assets;assets" --name "XebecPDF" src/main.py
 ```
 
 ### Installing Dependencies

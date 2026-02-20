@@ -1,6 +1,8 @@
 from typing import Optional, Dict, Any, Callable
-from PyQt6.QtCore import QObject, pyqtSignal
+from PyQt6.QtCore import QObject, pyqtSignal, Qt
 from PyQt6.QtWidgets import QApplication
+
+from src.utils.logger import logger
 
 
 class WindowManager(QObject):
@@ -84,22 +86,24 @@ class WindowManager(QObject):
         from src.gui.windows.main_window import MainWindow
         from src.gui.themes.theme_manager import theme_manager
         
+        logger.nav(f"Creando splash screen ({duration_ms}ms)")
+        
         splash = SplashScreen()
         splash.show()
         
         if self._app:
             self._app.processEvents()
         
-        # Crear la ventana principal en background (ya se oculta sola)
+        logger.nav(f"Creando MainWindow en background")
         self._main_window = MainWindow()
         
         def finish_splash():
             splash.finish(self._main_window)
             self._main_window.showMaximized()
+            logger.nav(f"Splash terminado, mostrando MainWindow")
             self.window_changed.emit("main")
             self.window_opened.emit("main", {})
         
-        # Iniciar simulación de carga
         splash.simulate_loading(finish_splash)
     
     def show_main(self, **kwargs) -> None:
@@ -112,8 +116,11 @@ class WindowManager(QObject):
         from src.gui.windows.main_window import MainWindow
         from src.gui.themes.theme_manager import theme_manager
         
+        logger.nav(f"Mostrando MainWindow")
+        
         if self._main_window is not None:
             if hasattr(self._main_window, 'close'):
+                logger.nav(f"Cerrando MainWindow anterior")
                 self._main_window.close()
         
         self._main_window = MainWindow(**kwargs)
@@ -123,31 +130,43 @@ class WindowManager(QObject):
         self.window_changed.emit("main")
         self.window_opened.emit("main", kwargs)
     
-    def show_editor(self, document_type: str = "blank", **kwargs) -> None:
+    def show_editor(self, document_type: str = "blank", file_path: str = None, **kwargs) -> None:
         """
         Muestra la ventana del editor.
         
         Args:
-            document_type: Tipo de documento ("blank", "suggestion", "recent")
+            document_type: Tipo de documento ("blank", "suggestion", "recent", "file")
+            file_path: Ruta del archivo PDF a abrir
             **kwargs: Argumentos adicionales para EditorWindowContainer
         """
         from src.gui.windows.editor_window import EditorWindowContainer
         from src.gui.themes.theme_manager import theme_manager
         
+        if file_path:
+            logger.nav(f"Abriendo EditorWindowContainer - tipo: {document_type}, archivo: {file_path}")
+        else:
+            logger.nav(f"Abriendo EditorWindowContainer - tipo: {document_type}")
+        
         if self._main_window and self._main_window.isVisible():
+            logger.nav(f"Ocultando MainWindow")
             self._main_window.hide()
         
         self._editor_window = EditorWindowContainer(
             document_type=document_type,
-            parent=self._main_window
+            file_path=file_path,
+            parent=None
         )
+        # Quitar barra de título nativa de Windows
+        self._editor_window.setWindowFlags(Qt.WindowType.FramelessWindowHint)
         self._editor_window.close_requested.connect(self._on_editor_close_requested)
         self._editor_window.showMaximized()
+        
+        logger.nav(f"EditorWindowContainer mostrado")
         
         theme_manager.emit_change()
         
         self.window_changed.emit("editor")
-        self.window_opened.emit("editor", {"document_type": document_type, **kwargs})
+        self.window_opened.emit("editor", {"document_type": document_type, "file_path": file_path, **kwargs})
     
     def _on_editor_close_requested(self) -> None:
         """Maneja el evento de cierre del editor."""
@@ -160,6 +179,8 @@ class WindowManager(QObject):
         Args:
             create_new_main: Si True, crea una nueva instancia de MainWindow
         """
+        logger.nav(f"Cerrando EditorWindowContainer")
+        
         if self._editor_window is not None:
             self._editor_window.close()
             self._editor_window.deleteLater()
@@ -168,6 +189,7 @@ class WindowManager(QObject):
             self.window_closed.emit("editor")
         
         if create_new_main:
+            logger.nav(f"Creando nueva MainWindow")
             self.show_main()
         elif self._main_window:
             self._main_window.showMaximized()
@@ -181,6 +203,8 @@ class WindowManager(QObject):
             window_type: Tipo de ventana ("main", "editor", "splash")
             **kwargs: Argumentos para la ventana
         """
+        logger.nav(f"Navegando a: {window_type}")
+        
         if window_type == "main":
             self.show_main(**kwargs)
         elif window_type == "editor":

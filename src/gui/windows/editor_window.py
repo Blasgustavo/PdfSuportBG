@@ -4,9 +4,10 @@ from PyQt6.QtWidgets import (
     QToolBar, QToolButton, QStatusBar, QDialog
 )
 from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtGui import QAction
+from PyQt6.QtGui import QAction, QIcon, QPixmap, QImage
 from pathlib import Path
 from typing import Optional
+import fitz  # PyMuPDF
 
 from src.gui.themes.theme_manager import theme_manager
 
@@ -15,16 +16,48 @@ class EditorWindow(QFrame):
     file_opened = pyqtSignal(str)
     close_requested = pyqtSignal()
     
+    # Modos de operación
+    MODE_READ = "read"
+    MODE_EDIT = "edit"
+    
     def __init__(self, document_type: str = "blank", parent: Optional[QWidget] = None):
         super().__init__(parent)
         self.document_type = document_type
         self.current_file_path = None
         self._has_unsaved_changes = False
+        
+        # Estado del visor PDF
+        self._current_mode = self.MODE_READ  # Modo lectura por defecto
+        self._current_page = 0
+        self._zoom_level = 1.0
+        self._pdf_document = None
+        self._total_pages = 0
+        
         self._setup_ui()
         
         theme_manager.theme_changed.connect(self._apply_style)
         
         self._load_document()
+    
+    @property
+    def mode(self):
+        return self._current_mode
+    
+    @mode.setter
+    def mode(self, value):
+        self._current_mode = value
+        self._update_mode_buttons()
+        self._apply_mode_style()
+    
+    def set_mode_read(self):
+        """Cambiar a modo lectura."""
+        self.mode = self.MODE_READ
+        self.status_label.setText("Modo Lectura")
+    
+    def set_mode_edit(self):
+        """Cambiar a modo edición."""
+        self.mode = self.MODE_EDIT
+        self.status_label.setText("Modo Edición")
     
     def mark_as_modified(self):
         self._has_unsaved_changes = True
@@ -42,19 +75,214 @@ class EditorWindow(QFrame):
             elif not self._has_unsaved_changes and title.startswith("*"):
                 self.file_name_label.setText(title[1:])
     
+    def _update_mode_buttons(self):
+        """Actualiza la apariencia de los botones según el modo."""
+        colors = theme_manager.colors
+        if self._current_mode == self.MODE_READ:
+            self.status_label.setText("Modo Lectura")
+        else:
+            self.status_label.setText("Modo Edición")
+    
+    def _apply_mode_style(self):
+        """Aplica estilos según el modo actual."""
+        self._update_mode_buttons()
+    
     def _load_document(self):
+        """Carga y renderiza el documento."""
         if self.document_type == "blank":
-            self.file_name_label.setText("Nuevo Documento en Blanco")
-            self.info_label.setText("Documento en blanco - listo para editar")
-            self.status_label.setText("Nuevo documento creado")
+            self._render_blank_document()
         elif self.document_type == "suggestion":
             self.file_name_label.setText("Documento de Sugerencia")
             self.info_label.setText("Documento de sugerencia")
-            self.status_label.setText("Listo")
+            self.status_label.setText("Modo Lectura")
         elif self.document_type == "recent":
             self.file_name_label.setText("Documento Reciente")
             self.info_label.setText("Documento reciente")
-            self.status_label.setText("Listo")
+            self.status_label.setText("Modo Lectura")
+        
+        # Por defecto siempre modo lectura
+        self.set_mode_read()
+    
+    def _render_blank_document(self):
+        """Renderiza un documento en blanco."""
+        self.file_name_label.setText("Nuevo Documento en Blanco")
+        self.info_label.setVisible(False)
+        self.pdf_scroll_area.setVisible(True)
+        
+        # Crear página en blanco
+        blank_pixmap = self._create_blank_page()
+        self.page_label.setPixmap(blank_pixmap)
+        
+        self._total_pages = 1
+        self._current_page = 0
+        self.page_info_label.setText("Página: 1 / 1")
+        self.status_label.setText("Modo Lectura - Documento en blanco")
+    
+    def _create_blank_page(self, width=595, height=842):
+        """Crea una página en blanco (A4)."""
+        # Crear imagen en blanco
+        from PyQt6.QtGui import QImage, QPainter, QColor, QPen
+        
+        image = QImage(width, height, QImage.Format.Format_RGB32)
+        image.fill(QColor(255, 255, 255))
+        
+        painter = QPainter(image)
+        painter.setPen(QPen(QColor(200, 200, 200)))
+        painter.drawRect(0, 0, width-1, height-1)
+        painter.end()
+        
+        pixmap = QPixmap.fromImage(image)
+        return pixmap.scaled(
+            int(width * self._zoom_level), 
+            int(height * self._zoom_level),
+            Qt.AspectRatioMode.KeepAspectRatio,
+            Qt.TransformationMode.SmoothTransformation
+        )
+    
+    def load_pdf(self, file_path: str):
+        """Carga un archivo PDF y lo renderiza."""
+        try:
+            self.current_file_path = file_path
+            self._pdf_document = fitz.open(file_path)
+            self._total_pages = len(self._pdf_document)
+            self._current_page = 0
+            
+            # Mostrar área PDF, ocultar label de info
+            self.info_label.setVisible(False)
+            self.pdf_scroll_area.setVisible(True)
+            
+            # Renderizar todas las páginas (permite scroll vertical)
+            self._render_all_pages()
+            
+            # Actualizar información
+            self.file_name_label.setText(Path(file_path).name)
+            self.page_info_label.setText(f"Páginas: {self._total_pages}")
+            self.status_label.setText("Modo Lectura - Usa el scroll para navegar")
+            
+            # Siempre abrir en modo lectura
+            self.set_mode_read()
+            
+            self.file_opened.emit(file_path)
+            
+        except Exception as e:
+            self.status_label.setText(f"Error al cargar PDF: {str(e)}")
+    
+    def _render_current_page(self):
+        """Renderiza la página actual del PDF."""
+        if self._pdf_document is None:
+            return
+        
+        try:
+            page = self._pdf_document[self._current_page]
+            
+            # Calcular zoom
+            mat = fitz.Matrix(self._zoom_level, self._zoom_level)
+            pix = page.get_pixmap(matrix=mat)
+            
+            # Convertir a QImage
+            img = QImage(pix.samples, pix.width, pix.height, pix.stride, QImage.Format.Format_RGB888)
+            
+            # Mostrar en label
+            pixmap = QPixmap.fromImage(img)
+            self.page_label.setPixmap(pixmap)
+            
+            # Actualizar tamaño mínimo del contenedor para permitir scroll
+            self.page_label.setMinimumSize(pixmap.width(), pixmap.height())
+            
+            # Actualizar info
+            self.page_info_label.setText(f"Página: {self._current_page + 1} / {self._total_pages}")
+            
+        except Exception as e:
+            self.status_label.setText(f"Error al renderizar: {str(e)}")
+    
+    def _render_all_pages(self):
+        """Renderiza todas las páginas del PDF en scroll vertical."""
+        if self._pdf_document is None:
+            return
+        
+        try:
+            # Limpiar layout anterior
+            while self.pdf_layout.count():
+                item = self.pdf_layout.takeAt(0)
+                if item.widget():
+                    item.widget().deleteLater()
+            
+            # Renderizar cada página con su tamaño real
+            for page_num in range(self._total_pages):
+                page = self._pdf_document[page_num]
+                
+                # Obtener tamaño real de la página (en puntos)
+                page_rect = page.rect
+                page_width = page_rect.width
+                page_height = page_rect.height
+                
+                # Calcular matriz de transformación con zoom
+                mat = fitz.Matrix(self._zoom_level, self._zoom_level)
+                pix = page.get_pixmap(matrix=mat)
+                
+                # Crear imagen de la página
+                img = QImage(pix.samples, pix.width, pix.height, pix.stride, QImage.Format.Format_RGB888)
+                pixmap = QPixmap.fromImage(img)
+                
+                # Crear label para la página con tamaño real
+                page_label = QLabel()
+                page_label.setPixmap(pixmap)
+                page_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                
+                # Fondo blanco para simular hoja de papel
+                page_label.setStyleSheet("""
+                    background-color: white;
+                    border: 1px solid #CCCCCC;
+                """)
+                
+                # Establecer tamaño exacto según la página y el zoom
+                render_width = int(page_width * self._zoom_level)
+                render_height = int(page_height * self._zoom_level)
+                page_label.setFixedSize(render_width, render_height)
+                
+                # Centrar en el layout
+                page_wrapper = QWidget()
+                page_wrapper_layout = QVBoxLayout(page_wrapper)
+                page_wrapper_layout.setContentsMargins(0, 5, 0, 5)
+                page_wrapper_layout.addWidget(page_label, 0, Qt.AlignmentFlag.AlignCenter)
+                
+                self.pdf_layout.addWidget(page_wrapper)
+            
+            # Actualizar info
+            self.page_info_label.setText(f"Páginas: {self._total_pages}")
+            
+        except Exception as e:
+            self.status_label.setText(f"Error al renderizar: {str(e)}")
+    
+    def next_page(self):
+        """Ir a la siguiente página."""
+        if self._current_page < self._total_pages - 1:
+            self._current_page += 1
+            self._render_current_page()
+    
+    def previous_page(self):
+        """Ir a la página anterior."""
+        if self._current_page > 0:
+            self._current_page -= 1
+            self._render_current_page()
+    
+    def zoom_in(self):
+        """Acercar."""
+        self._zoom_level = min(3.0, self._zoom_level + 0.25)
+        self.zoom_info_label.setText(f"Zoom: {int(self._zoom_level * 100)}%")
+        if self._pdf_document:
+            self._render_current_page()
+        elif self.document_type == "blank":
+            self.page_label.setPixmap(self._create_blank_page())
+    
+    def zoom_out(self):
+        """Alejar."""
+        self._zoom_level = max(0.25, self._zoom_level - 0.25)
+        self.zoom_info_label.setText(f"Zoom: {int(self._zoom_level * 100)}%")
+        if self._pdf_document:
+            self._render_current_page()
+        elif self.document_type == "blank":
+            self.page_label.setPixmap(self._create_blank_page())
     
     def _setup_ui(self):
         main_layout = QVBoxLayout(self)
@@ -118,14 +346,47 @@ class EditorWindow(QFrame):
         btn_save.setToolTip("Guardar")
         btn_save.clicked.connect(self._save_pdf)
         
+        # Botones de navegación de páginas
+        layout.addStretch()
+        
+        self.btn_prev = QPushButton("◀")
+        self.btn_prev.setFixedSize(50, 40)
+        self.btn_prev.setToolTip("Página anterior")
+        self.btn_prev.clicked.connect(self.previous_page)
+        
+        self.btn_next = QPushButton("▶")
+        self.btn_next.setFixedSize(50, 40)
+        self.btn_next.setToolTip("Página siguiente")
+        self.btn_next.clicked.connect(self.next_page)
+        
+        # Botón de modo lectura/edición
+        self.btn_mode = QPushButton("📖")
+        self.btn_mode.setFixedSize(50, 40)
+        self.btn_mode.setToolTip("Cambiar modo (Lectura/Escritura)")
+        self.btn_mode.clicked.connect(self._toggle_mode)
+        
         layout.addWidget(btn_home)
         layout.addWidget(btn_new)
         layout.addWidget(btn_open)
         layout.addWidget(btn_save)
+        layout.addWidget(self.btn_mode)
+        layout.addWidget(self.btn_prev)
+        layout.addWidget(self.btn_next)
         
         layout.addStretch()
         
         return panel
+    
+    def _toggle_mode(self):
+        """Alterna entre modo lectura y edición."""
+        if self._current_mode == self.MODE_READ:
+            self.set_mode_edit()
+            self.btn_mode.setText("✏️")
+            self.btn_mode.setToolTip("Modo Edición - Clic para cambiar a Lectura")
+        else:
+            self.set_mode_read()
+            self.btn_mode.setText("📖")
+            self.btn_mode.setToolTip("Modo Lectura - Clic para cambiar a Edición")
     
     def _create_ribbon_panel(self):
         panel = QFrame()
@@ -218,10 +479,35 @@ class EditorWindow(QFrame):
         layout = QVBoxLayout(panel)
         layout.setContentsMargins(10, 10, 10, 10)
         
+        # Área de scroll para el PDF
+        self.pdf_scroll_area = QScrollArea()
+        self.pdf_scroll_area.setObjectName("pdfScrollArea")
+        self.pdf_scroll_area.setWidgetResizable(True)
+        self.pdf_scroll_area.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        
+        # Widget contenedor para las páginas del PDF
+        self.pdf_container = QWidget()
+        self.pdf_layout = QVBoxLayout(self.pdf_container)
+        self.pdf_layout.setSpacing(10)
+        self.pdf_layout.setContentsMargins(0, 0, 0, 0)
+        
+        # Label para mostrar la página actual
+        self.page_label = QLabel()
+        self.page_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.page_label.setObjectName("pdfPageLabel")
+        
+        self.pdf_layout.addWidget(self.page_label)
+        self.pdf_scroll_area.setWidget(self.pdf_container)
+        
+        layout.addWidget(self.pdf_scroll_area, 1)
+        
+        # Label de info cuando no hay documento
         self.info_label = QLabel("Seleccione un archivo PDF para comenzar a trabajar")
         self.info_label.setObjectName("editorInfo")
         self.info_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(self.info_label, 1)
+        
+        # Ocultar área PDF inicialmente
+        self.pdf_scroll_area.setVisible(False)
         
         return panel
     
@@ -293,21 +579,12 @@ class EditorWindow(QFrame):
         )
         
         if file_path:
-            self.current_file_path = file_path
-            file_name = Path(file_path).name
-            self.file_name_label.setText(file_name)
-            self.info_label.setText(f"Archivo cargado: {file_name}")
-            self.status_label.setText("Archivo abierto correctamente")
-            self.file_opened.emit(file_path)
+            self.load_pdf(file_path)
     
     def load_file(self, file_path: str):
-        self.current_file_path = file_path
-        file_name = Path(file_path).name
-        self.file_name_label.setText(file_name)
-        self.info_label.setText(f"Archivo cargado: {file_name}")
-        self.status_label.setText("Archivo abierto correctamente")
-        self.mark_as_saved()
-        self.file_opened.emit(file_path)
+        """Carga un archivo PDF desde una ruta."""
+        self.document_type = "file"
+        self.load_pdf(file_path)
     
     def _go_home(self):
         self.close_requested.emit()
@@ -393,6 +670,14 @@ class EditorWindow(QFrame):
                 color: {colors['fg_secondary']};
                 font-size: 16px;
             }}
+            QScrollArea#pdfScrollArea {{
+                background-color: {colors['bg_tertiary']};
+                border: none;
+            }}
+            QLabel#pdfPageLabel {{
+                background-color: white;
+                border: 1px solid {colors['border']};
+            }}
             QFrame#rightPanel {{
                 background-color: {colors['bg_secondary']};
                 border-left: 1px solid {colors['border']};
@@ -425,15 +710,26 @@ class EditorWindow(QFrame):
 class EditorWindowContainer(QDialog):
     close_requested = pyqtSignal()
     
-    def __init__(self, document_type: str = "blank", parent: Optional[QWidget] = None):
+    def __init__(self, document_type: str = "blank", file_path: str = None, parent: Optional[QWidget] = None):
         super().__init__(parent)
         self.document_type = document_type
+        self.file_path = file_path
+        
+        # Set window icon
+        icon_path = Path(__file__).parent.parent.parent / "assets" / "icons" / "icono.png"
+        if not icon_path.exists():
+            icon_path = Path.cwd() / "assets" / "icons" / "icono.png"
+        if icon_path.exists():
+            self.setWindowIcon(QIcon(str(icon_path)))
+        
         self._setup_ui()
         
         theme_manager.theme_changed.connect(self._apply_theme)
         
         if self.editor:
             self.editor.close_requested.connect(self._on_editor_close_requested)
+            if file_path:
+                self.editor.load_file(file_path)
     
     def _setup_ui(self):
         layout = QVBoxLayout(self)
@@ -561,33 +857,33 @@ class EditorWindowContainer(QDialog):
             self.close_requested.emit()
     
     def _apply_theme(self):
-        colors = theme_manager.colors
-        self.setStyleSheet(f"""
-            QFrame#titleBar {{
-                background-color: {colors['bg_secondary']};
-            }}
-            QLabel#titleLabel {{
-                color: {colors['fg_primary']};
+        self.setStyleSheet("""
+            QFrame#titleBar {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #1E3A5F, stop:0.5 #0E2A4F, stop:1 #1A202C) !important;
+            }
+            QLabel#titleLabel {
+                color: #FFFFFF;
                 font-size: 14px;
                 font-weight: bold;
-            }}
-            QPushButton#titleButton {{
-                background-color: transparent;
-                color: {colors['fg_secondary']};
+            }
+            QPushButton#titleButton {
+                background: transparent;
+                color: #FFFFFF;
                 border: none;
                 font-size: 14px;
-            }}
-            QPushButton#titleButton:hover {{
-                background-color: {colors['bg_tertiary']};
-            }}
-            QPushButton#closeButton {{
-                background-color: transparent;
-                color: {colors['fg_secondary']};
-                border: none;
-                font-size: 14px;
-            }}
-            QPushButton#closeButton:hover {{
-                background-color: {colors['error']};
+            }
+            QPushButton#titleButton:hover {
+                background: rgba(255, 255, 255, 0.2);
                 color: white;
-            }}
+            }
+            QPushButton#closeButton {
+                background: transparent;
+                color: #FFFFFF;
+                border: none;
+                font-size: 14px;
+            }
+            QPushButton#closeButton:hover {
+                background: #E53E3E;
+                color: white;
+            }
         """)
