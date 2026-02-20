@@ -3,28 +3,16 @@ GUI Components - Panels
 Contiene los paneles de la interfaz.
 """
 
-# Importar desde archivos separados
 from .sidebar import Sidebar, SidebarButton
-
-# RecentDocumentsWidget está en document_card.py
-try:
-    from .document_card import RecentDocumentsWidget
-except ImportError:
-    from .components_temp import RecentDocumentsWidget
-
-# Importar paneles restantes desde temporal
-try:
-    from .components_temp import (
-        StartPanel,
-        NewPanel,
-        RepairPanel,
-        MergePanel,
-        SplitPanel,
-        SettingsPanel,
-        NewDocumentPanel,
-    )
-except ImportError:
-    pass
+from .document_card import RecentDocumentsWidget
+from .start_panel import StartPanel
+from .new_panel import NewPanel
+from .repair_panel import RepairPanel
+from .merge_panel import MergePanel
+from .split_panel import SplitPanel
+from .settings_panel import SettingsPanel
+from .new_document_panel import NewDocumentPanel
+from .account_panel import AccountPanel
 
 __all__ = [
     'Sidebar',
@@ -37,4 +25,5 @@ __all__ = [
     'SplitPanel',
     'SettingsPanel',
     'NewDocumentPanel',
+    'AccountPanel',
 ]

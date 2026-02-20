@@ -15,6 +15,7 @@ from .panels import (
     SplitPanel,
     SettingsPanel,
     NewDocumentPanel,
+    AccountPanel,
 )
 
 # Alias para compatibilidad
@@ -36,6 +37,7 @@ __all__ = [
     'SplitPanel',
     'SettingsPanel',
     'NewDocumentPanel',
+    'AccountPanel',
     # Alias
     'DocumentCard',
     # Buttons
