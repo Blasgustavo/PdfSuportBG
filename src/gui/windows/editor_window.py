@@ -1,10 +1,10 @@
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, 
     QFrame, QFileDialog, QScrollArea, QSplitter, QSizePolicy,
-    QToolBar, QToolButton, QStatusBar, QDialog
+    QToolBar, QToolButton, QStatusBar, QDialog, QListWidget, QListWidgetItem
 )
-from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtGui import QAction, QIcon, QPixmap, QImage
+from PyQt6.QtCore import Qt, pyqtSignal, QTimer
+from PyQt6.QtGui import QAction, QIcon, QPixmap, QImage, QKeyEvent, QCursor
 from pathlib import Path
 from typing import Optional
 import fitz  # PyMuPDF
@@ -32,6 +32,10 @@ class EditorWindow(QFrame):
         self._zoom_level = 1.0
         self._pdf_document = None
         self._total_pages = 0
+        
+        # Cursor timer para restaurar cursor
+        self._cursor_timer = QTimer()
+        self._cursor_timer.timeout.connect(self._restore_cursor)
         
         self._setup_ui()
         
@@ -66,6 +70,203 @@ class EditorWindow(QFrame):
     def mark_as_saved(self):
         self._has_unsaved_changes = False
         self._update_window_title()
+    
+    def keyPressEvent(self, event: QKeyEvent):
+        """Captura eventos de teclado para atajos."""
+        key = event.key()
+        modifiers = event.modifiers()
+        
+        # Ctrl + = o Ctrl + + (acercar)
+        if modifiers == Qt.KeyboardModifier.ControlModifier and (key == Qt.Key.Key_Equal or key == Qt.Key.Key_Plus):
+            self.zoom_in()
+            self._set_temp_cursor(Qt.CursorShape.SizeVerCursor)
+            event.accept()
+            return
+        
+        # Ctrl + - (alejar)
+        if modifiers == Qt.KeyboardModifier.ControlModifier and key == Qt.Key.Key_Minus:
+            self.zoom_out()
+            self._set_temp_cursor(Qt.CursorShape.SizeVerCursor)
+            event.accept()
+            return
+        
+        # Ctrl + Right (siguiente página)
+        if modifiers == Qt.KeyboardModifier.ControlModifier and key == Qt.Key.Key_Right:
+            self.next_page()
+            self._set_temp_cursor(Qt.CursorShape.PointingHandCursor)
+            event.accept()
+            return
+        
+        # Ctrl + Left (página anterior)
+        if modifiers == Qt.KeyboardModifier.ControlModifier and key == Qt.Key.Key_Left:
+            self.previous_page()
+            self._set_temp_cursor(Qt.CursorShape.PointingHandCursor)
+            event.accept()
+            return
+        
+        # Ctrl + / o F1 (mostrar comandos)
+        if (modifiers == Qt.KeyboardModifier.ControlModifier and key == Qt.Key.Key_Slash) or key == Qt.Key.Key_F1:
+            self._show_commands_dialog()
+            event.accept()
+            return
+        
+        # Home (primera página)
+        if key == Qt.Key.Key_Home:
+            self._go_to_first_page()
+            self._set_temp_cursor(Qt.CursorShape.PointingHandCursor)
+            event.accept()
+            return
+        
+        # End (última página)
+        if key == Qt.Key.Key_End:
+            self._go_to_last_page()
+            self._set_temp_cursor(Qt.CursorShape.PointingHandCursor)
+            event.accept()
+            return
+        
+        # Ctrl + 0 (zoom 100%)
+        if modifiers == Qt.KeyboardModifier.ControlModifier and key == Qt.Key.Key_0:
+            self._zoom_level = 1.0
+            self.zoom_info_label.setText(f"Zoom: {int(self._zoom_level * 100)}%")
+            if self._pdf_document:
+                self._render_current_page()
+            elif self.document_type == "blank":
+                self.page_label.setPixmap(self._create_blank_page())
+            self._set_temp_cursor(Qt.CursorShape.SizeVerCursor)
+            event.accept()
+            return
+        
+        # Escape (cerrar diálogo de comandos si está abierto)
+        if key == Qt.Key.Key_Escape:
+            # Buscar y cerrar cualquier diálogo de comandos abierto
+            for widget in self.findChildren(QDialog, "commandsDialog"):
+                widget.close()
+            event.accept()
+            return
+        
+        super().keyPressEvent(event)
+    
+    def _set_temp_cursor(self, cursor_shape: Qt.CursorShape):
+        """Cambia temporalmente el cursor y lo restaura después de 500ms."""
+        if hasattr(self, 'pdf_scroll_area') and self.pdf_scroll_area:
+            self.pdf_scroll_area.setCursor(cursor_shape)
+        
+        # Reiniciar timer
+        self._cursor_timer.stop()
+        self._cursor_timer.start(500)  # 500ms
+    
+    def _restore_cursor(self):
+        """Restaura el cursor predeterminado."""
+        self._cursor_timer.stop()
+        if hasattr(self, 'pdf_scroll_area') and self.pdf_scroll_area:
+            self.pdf_scroll_area.setCursor(Qt.CursorShape.ArrowCursor)
+    
+    def _go_to_first_page(self):
+        """Ir a la primera página."""
+        if self._total_pages > 0:
+            self._current_page = 0
+            self._render_current_page()
+            self.status_label.setText("Primera página")
+    
+    def _go_to_last_page(self):
+        """Ir a la última página."""
+        if self._total_pages > 0:
+            self._current_page = self._total_pages - 1
+            self._render_current_page()
+            self.status_label.setText(f"Página {self._total_pages}")
+    
+    def _show_commands_dialog(self):
+        """Muestra un diálogo con todos los comandos disponibles."""
+        # Verificar si ya hay un diálogo abierto
+        for widget in self.findChildren(QDialog, "commandsDialog"):
+            widget.close()
+        
+        dialog = QDialog(self)
+        dialog.setObjectName("commandsDialog")
+        dialog.setWindowTitle("Atajos de Teclado")
+        dialog.setMinimumSize(500, 400)
+        
+        # Centrar diálogo
+        dialog.setGeometry(
+            self.x() + (self.width() - 500) // 2,
+            self.y() + (self.height() - 400) // 2,
+            500, 400
+        )
+        
+        layout = QVBoxLayout(dialog)
+        
+        # Título
+        title = QLabel("Atajos de Teclado Disponibles")
+        title.setStyleSheet("font-size: 16px; font-weight: bold; margin-bottom: 10px;")
+        layout.addWidget(title)
+        
+        # Lista de comandos
+        commands_list = QListWidget()
+        commands_list.setObjectName("commandsList")
+        
+        commands = [
+            ("Ctrl + =", "Acercar (Zoom In)"),
+            ("Ctrl + -", "Alejar (Zoom Out)"),
+            ("Ctrl + 0", "Zoom 100%"),
+            ("Ctrl + →", "Siguiente página"),
+            ("Ctrl + ←", "Página anterior"),
+            ("Home", "Primera página"),
+            ("End", "Última página"),
+            ("Ctrl + /", "Mostrar comandos"),
+            ("F1", "Mostrar comandos"),
+            ("Escape", "Cerrar este diálogo"),
+        ]
+        
+        for shortcut, description in commands:
+            item = QListWidgetItem(f"{shortcut:<15} → {description}")
+            item.setData(1, shortcut)  # Guardar shortcut para referencia
+            commands_list.addItem(item)
+        
+        layout.addWidget(commands_list)
+        
+        # Cerrar botón
+        close_btn = QPushButton("Cerrar")
+        close_btn.clicked.connect(dialog.close)
+        layout.addWidget(close_btn)
+        
+        # Estilo del diálogo
+        colors = theme_manager.colors
+        dialog.setStyleSheet(f"""
+            QDialog {{
+                background-color: {colors['bg_primary']};
+            }}
+            QLabel {{
+                color: {colors['fg_primary']};
+            }}
+            QListWidget {{
+                background-color: {colors['bg_secondary']};
+                color: {colors['fg_primary']};
+                border: 1px solid {colors['border']};
+                border-radius: 4px;
+                padding: 5px;
+            }}
+            QListWidget::item {{
+                padding: 8px;
+                border-bottom: 1px solid {colors['border']};
+            }}
+            QListWidget::item:selected {{
+                background-color: {colors['accent']};
+                color: white;
+            }}
+            QPushButton {{
+                background-color: {colors['accent']};
+                color: white;
+                border: none;
+                border-radius: 4px;
+                padding: 8px 16px;
+                font-weight: bold;
+            }}
+            QPushButton:hover {{
+                opacity: 0.9;
+            }}
+        """)
+        
+        dialog.exec()
     
     def _update_window_title(self):
         if hasattr(self, 'file_name_label'):
@@ -484,6 +685,7 @@ class EditorWindow(QFrame):
         self.pdf_scroll_area.setObjectName("pdfScrollArea")
         self.pdf_scroll_area.setWidgetResizable(True)
         self.pdf_scroll_area.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.pdf_scroll_area.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         
         # Widget contenedor para las páginas del PDF
         self.pdf_container = QWidget()
