@@ -228,7 +228,14 @@ class EditorWindow(QFrame):
     def _load_document(self):
         """Carga y renderiza el documento."""
         if self.document_type == "blank":
-            self._render_blank_document()
+            # Mostrar mensaje de documento en blanco
+            self.file_name_label.setText("Nuevo Documento en Blanco")
+            self.info_label.setText("Cree un nuevo documento o abra un PDF existente")
+            self.info_label.setVisible(True)
+            self.pdf_view.setVisible(True)
+            self._total_pages = 0
+            self.page_info_label.setText("Sin páginas")
+            self.status_label.setText("Listo para trabajar")
         elif self.document_type == "suggestion":
             self.file_name_label.setText("Documento de Sugerencia")
             self.info_label.setText("Documento de sugerencia")
@@ -273,12 +280,9 @@ class EditorWindow(QFrame):
             
             # Ctrl + 0 (zoom 100%)
             if modifiers == Qt.KeyboardModifier.ControlModifier and key == Qt.Key.Key_0:
-                self._zoom_level = 1.0
-                self.zoom_info_label.setText(f"Zoom: {int(self._zoom_level * 100)}%")
-                if self._pdf_document:
-                    self._render_current_page()
-                elif self.document_type == "blank":
-                    self.page_label.setPixmap(self._create_blank_page())
+                if hasattr(self, 'pdf_view') and self.pdf_view:
+                    self.pdf_view.setZoomFactor(1.0)
+                self.zoom_info_label.setText("Zoom: 100%")
                 self._set_temp_cursor(Qt.CursorShape.SizeVerCursor)
                 return True
             
