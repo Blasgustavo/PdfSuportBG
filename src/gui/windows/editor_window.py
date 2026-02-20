@@ -579,13 +579,13 @@ class EditorWindow(QFrame):
         layout.setContentsMargins(10, 10, 10, 10)
         
         # Visor de PDF profesional usando QPdfView
-        self.pdf_view = QPdfView()
+        self.pdf_view = QPdfView(panel)
         self.pdf_view.setObjectName("pdfView")
         self.pdf_view.setZoomMode(QPdfView.ZoomMode.FitToWidth)
         self.pdf_view.setPageMode(QPdfView.PageMode.MultiPage)
         
         # Crear documento PDF
-        self._pdf_document = QPdfDocument()
+        self._pdf_document = QPdfDocument(self.pdf_view)
         self.pdf_view.setDocument(self._pdf_document)
         
         # Conectar señales de navegación
