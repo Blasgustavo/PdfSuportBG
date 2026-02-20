@@ -4,13 +4,79 @@ from PyQt6.QtWidgets import (
     QToolBar, QToolButton, QStatusBar, QDialog, QListWidget, QListWidgetItem
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QTimer, QEvent
-from PyQt6.QtGui import QAction, QIcon, QKeySequence, QShortcut
+from PyQt6.QtGui import QAction, QIcon, QKeySequence, QShortcut, QKeyEvent
 from PyQt6.QtPdf import QPdfDocument
 from PyQt6.QtPdfWidgets import QPdfView
 from pathlib import Path
 from typing import Optional
 
 from src.gui.themes.theme_manager import theme_manager
+
+
+class PDFViewerWidget(QPdfView):
+    """Custom QPdfView that emits signals for keyboard shortcuts."""
+    
+    # Signals for keyboard shortcuts
+    zoom_in_requested = pyqtSignal()
+    zoom_out_requested = pyqtSignal()
+    zoom_reset_requested = pyqtSignal()
+    next_page_requested = pyqtSignal()
+    previous_page_requested = pyqtSignal()
+    first_page_requested = pyqtSignal()
+    last_page_requested = pyqtSignal()
+    help_requested = pyqtSignal()
+    
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+    
+    def keyPressEvent(self, event):
+        """Handle key press events for zoom and navigation shortcuts."""
+        key = event.key()
+        modifiers = event.modifiers()
+        
+        # Ctrl + = or Ctrl + + (zoom in)
+        if modifiers == Qt.KeyboardModifier.ControlModifier and (key == Qt.Key.Key_Equal or key == Qt.Key.Key_Plus):
+            self.zoom_in_requested.emit()
+            return
+        
+        # Ctrl + - (zoom out)
+        if modifiers == Qt.KeyboardModifier.ControlModifier and key == Qt.Key.Key_Minus:
+            self.zoom_out_requested.emit()
+            return
+        
+        # Ctrl + 0 (zoom reset)
+        if modifiers == Qt.KeyboardModifier.ControlModifier and key == Qt.Key.Key_0:
+            self.zoom_reset_requested.emit()
+            return
+        
+        # Ctrl + Right (next page)
+        if modifiers == Qt.KeyboardModifier.ControlModifier and key == Qt.Key.Key_Right:
+            self.next_page_requested.emit()
+            return
+        
+        # Ctrl + Left (previous page)
+        if modifiers == Qt.KeyboardModifier.ControlModifier and key == Qt.Key.Key_Left:
+            self.previous_page_requested.emit()
+            return
+        
+        # Home (first page)
+        if key == Qt.Key.Key_Home:
+            self.first_page_requested.emit()
+            return
+        
+        # End (last page)
+        if key == Qt.Key.Key_End:
+            self.last_page_requested.emit()
+            return
+        
+        # F1 or Ctrl + / (help)
+        if key == Qt.Key.Key_F1 or (modifiers == Qt.KeyboardModifier.ControlModifier and key == Qt.Key.Key_Slash):
+            self.help_requested.emit()
+            return
+        
+        # Call parent for other keys
+        super().keyPressEvent(event)
 
 
 class EditorWindow(QFrame):
@@ -377,6 +443,13 @@ class EditorWindow(QFrame):
             self.zoom_info_label.setText(f"Zoom: {int(new_zoom * 100)}%")
             self._set_temp_cursor(Qt.CursorShape.SizeVerCursor)
     
+    def _on_zoom_reset_shortcut(self):
+        """Restablecer zoom al 100%."""
+        if hasattr(self, 'pdf_view') and self.pdf_view:
+            self.pdf_view.setZoomFactor(1.0)
+            self.zoom_info_label.setText("Zoom: 100%")
+            self._set_temp_cursor(Qt.CursorShape.SizeVerCursor)
+    
     def _setup_ui(self):
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
@@ -581,18 +654,25 @@ class EditorWindow(QFrame):
         layout = QVBoxLayout(panel)
         layout.setContentsMargins(10, 10, 10, 10)
         
-        # Visor de PDF profesional usando QPdfView
-        self.pdf_view = QPdfView(panel)
+        # Visor de PDF profesional usando PDFViewerWidget personalizado
+        self.pdf_view = PDFViewerWidget(panel)
         self.pdf_view.setObjectName("pdfView")
         self.pdf_view.setZoomMode(QPdfView.ZoomMode.FitToWidth)
         self.pdf_view.setPageMode(QPdfView.PageMode.MultiPage)
         
+        # Conectar señales de atajos de teclado
+        self.pdf_view.zoom_in_requested.connect(self.zoom_in)
+        self.pdf_view.zoom_out_requested.connect(self.zoom_out)
+        self.pdf_view.zoom_reset_requested.connect(self._on_zoom_reset_shortcut)
+        self.pdf_view.next_page_requested.connect(self.next_page)
+        self.pdf_view.previous_page_requested.connect(self.previous_page)
+        self.pdf_view.first_page_requested.connect(self._go_to_first_page)
+        self.pdf_view.last_page_requested.connect(self._go_to_last_page)
+        self.pdf_view.help_requested.connect(self._show_commands_dialog)
+        
         # Crear documento PDF
         self._pdf_document = QPdfDocument(self.pdf_view)
         self.pdf_view.setDocument(self._pdf_document)
-        
-        # Install event filter on the viewport to capture keyboard events
-        self.pdf_view.viewport().installEventFilter(self)
         
         # Conectar señales de navegación
         self._pdf_document.statusChanged.connect(self._on_pdf_loaded)
